@@ -29,7 +29,8 @@ class JobOffer(Base):
     facility_name = Column(String(255), nullable=False, index=True)
     city = Column(String(100), nullable=False, index=True)  # For future location filtering
     role = Column(SQLEnum(MedicalRole), nullable=False, index=True)
-    description = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)  # Full description from source
+    summary = Column(String(500), nullable=True)  # Short summary for cards (generated or extracted)
     source_url = Column(String(1000), unique=True, nullable=False, index=True)
     scraped_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

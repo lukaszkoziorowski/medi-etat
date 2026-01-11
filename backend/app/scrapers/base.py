@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import JobOffer, MedicalRole
 from app.scrapers.playwright_helper import PlaywrightHelper
+from app.utils.summary import extract_summary
 
 
 class BaseScraper(ABC):
@@ -503,6 +504,14 @@ class BaseScraper(ABC):
                         if remaining and len(remaining) > 10:
                             job_data['description'] = remaining[:1000]
             
+            # Generate summary (once, stored in database)
+            job_summary = extract_summary(
+                title=cleaned_title,
+                description=job_data.get('description'),
+                facility_name=cleaned_facility,
+                city=extracted_city
+            )
+            
             if existing:
                 if not update_existing:
                     result['skipped'] += 1
@@ -526,6 +535,10 @@ class BaseScraper(ABC):
                     updated = True
                 if existing.description != job_data.get('description'):
                     existing.description = job_data.get('description')
+                    updated = True
+                # Update summary if description or title changed
+                if existing.summary != job_summary:
+                    existing.summary = job_summary
                     updated = True
                 
                 # Always update timestamps
@@ -557,6 +570,7 @@ class BaseScraper(ABC):
                     city=extracted_city,
                     role=job_data['role'],
                     description=job_data.get('description'),
+                    summary=job_summary,
                     source_url=job_data['source_url'],
                     source_id=self.source_id,
                     external_job_url=job_data.get('external_job_url'),

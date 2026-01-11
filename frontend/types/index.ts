@@ -17,6 +17,7 @@ export interface JobOffer {
   city: string;
   role: MedicalRole;
   description: string | null;
+  summary: string | null;
   source_url: string;
   created_at: string;
   scraped_at?: string;

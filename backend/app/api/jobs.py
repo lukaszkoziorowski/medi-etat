@@ -48,6 +48,7 @@ async def list_jobs(
                 "city": job.city,
                 "role": job.role.value,
                 "description": job.description,
+                "summary": job.summary,
                 "source_url": job.source_url,
                 "created_at": job.created_at.isoformat(),
             }
@@ -77,6 +78,7 @@ async def get_job(job_id: int, db: Session = Depends(get_db)):
         "city": job.city,
         "role": job.role.value,
         "description": job.description,
+        "summary": job.summary,
         "source_url": job.source_url,
         "scraped_at": job.scraped_at.isoformat(),
         "created_at": job.created_at.isoformat(),

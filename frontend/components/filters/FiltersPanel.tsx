@@ -3,6 +3,7 @@
 import { JobPositionCategory, POSITION_LABELS } from '@/lib/filterConfig';
 import Button from '../ui/Button';
 import GlobalSearch from './GlobalSearch';
+import FilterPill from './FilterPill';
 
 interface FiltersPanelProps {
   availableCities: string[];
@@ -48,56 +49,42 @@ export default function FiltersPanel({
         {/* Global Search */}
         <GlobalSearch value={searchQuery} onChange={onSearchChange} />
 
-        {/* Position Filter - Multi-select checkboxes */}
+        {/* Position Filter - Pill components */}
         <div>
           <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
             Stanowisko
           </label>
-          <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
             {allPositions.map((position) => {
-              const isChecked = selectedPositions.includes(position);
+              const isSelected = selectedPositions.includes(position);
               return (
-                <label
+                <FilterPill
                   key={position}
-                  className="flex items-center cursor-pointer hover:bg-[var(--color-bg-primary)] p-2 rounded transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => onPositionToggle(position)}
-                    className="mr-2 w-4 h-4 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
-                  />
-                  <span className="text-sm text-[var(--color-text-secondary)]">
-                    {POSITION_LABELS[position]}
-                  </span>
-                </label>
+                  label={POSITION_LABELS[position]}
+                  isSelected={isSelected}
+                  onClick={() => onPositionToggle(position)}
+                />
               );
             })}
           </div>
         </div>
 
-        {/* City Filter - Multi-select checkboxes */}
+        {/* City Filter - Pill components */}
         {availableCities.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
               Lokalizacja
             </label>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
               {availableCities.map((city) => {
-                const isChecked = selectedCities.includes(city);
+                const isSelected = selectedCities.includes(city);
                 return (
-                  <label
+                  <FilterPill
                     key={city}
-                    className="flex items-center cursor-pointer hover:bg-[var(--color-bg-primary)] p-2 rounded transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => onCityToggle(city)}
-                      className="mr-2 w-4 h-4 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
-                    />
-                    <span className="text-sm text-[var(--color-text-secondary)]">{city}</span>
-                  </label>
+                    label={city}
+                    isSelected={isSelected}
+                    onClick={() => onCityToggle(city)}
+                  />
                 );
               })}
             </div>
