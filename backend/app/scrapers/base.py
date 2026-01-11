@@ -18,7 +18,7 @@ from app.scrapers.playwright_helper import PlaywrightHelper
 class BaseScraper(ABC):
     """Base class for all job offer scrapers."""
     
-    def __init__(self, base_url: str, facility_name: str, city: str = "Gdańsk"):
+    def __init__(self, base_url: str, facility_name: str, city: str = "Gdańsk", source_id: str = None):
         """
         Initialize scraper.
         
@@ -26,10 +26,12 @@ class BaseScraper(ABC):
             base_url: Base URL of the career/job offers page
             facility_name: Name of the medical facility
             city: City name (default: Gdańsk)
+            source_id: Unique identifier for this source (e.g., 'oipip_gdansk')
         """
         self.base_url = base_url
         self.facility_name = facility_name
         self.city = city
+        self.source_id = source_id
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -98,6 +100,64 @@ class BaseScraper(ABC):
         
         return MedicalRole.INNY
     
+    def extract_city(self, text: str) -> Optional[str]:
+        """
+        Extract city name from text (title or description).
+        
+        Args:
+            text: Text to search for city name
+            
+        Returns:
+            City name if found, None otherwise
+        """
+        if not text:
+            return None
+        
+        # List of major Polish cities and towns (expanded list)
+        polish_cities = [
+            'Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Szczecin',
+            'Bydgoszcz', 'Lublin', 'Katowice', 'Białystok', 'Gdynia', 'Częstochowa',
+            'Radom', 'Sosnowiec', 'Toruń', 'Kielce', 'Gliwice', 'Zabrze', 'Bytom',
+            'Olsztyn', 'Bielsko-Biała', 'Rzeszów', 'Ruda Śląska', 'Rybnik',
+            'Tychy', 'Dąbrowa Górnicza', 'Elbląg', 'Płock', 'Opole', 'Gorzów Wielkopolski',
+            'Wałbrzych', 'Zielona Góra', 'Włocławek', 'Tarnów', 'Chorzów', 'Kalisz',
+            'Koszalin', 'Legnica', 'Grudziądz', 'Słupsk', 'Jaworzno', 'Jastrzębie-Zdrój',
+            'Jelenia Góra', 'Nowy Sącz', 'Jaworzno', 'Konin', 'Piotrków Trybunalski',
+            'Lubin', 'Inowrocław', 'Ostrów Wielkopolski', 'Stargard', 'Mysłowice',
+            'Piekary Śląskie', 'Gniezno', 'Oława', 'Głogów', 'Żory', 'Tarnowskie Góry',
+            # Smaller towns from job titles we've seen
+            'Kartuzy', 'Kościerzyna', 'Chojnice', 'Człuchów', 'Reda', 'Sopot', 'Gdynia',
+            'Wejherowo', 'Rumia', 'Pruszcz Gdański', 'Tczew', 'Malbork', 'Kwidzyn',
+            'Starogard Gdański', 'Lębork', 'Bytów', 'Puck', 'Władysławowo', 'Hel',
+            'Jastarnia', 'Ustka', 'Słupsk', 'Miastko', 'Bytów', 'Czarna Woda',
+            'Skarszewy', 'Nowy Dwór Gdański', 'Krynica Morska', 'Stegna', 'Jantar',
+        ]
+        
+        text_upper = text.upper()
+        
+        # Search for cities (case-insensitive)
+        for city in polish_cities:
+            # Match whole word to avoid false positives
+            pattern = r'\b' + re.escape(city) + r'\b'
+            if re.search(pattern, text, re.IGNORECASE):
+                return city
+        
+        # Also check for patterns like "Miejsce pracy: City" or "City –" or "– City"
+        city_patterns = [
+            r'Miejsce\s+pracy\s*:?\s*([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+)?)',
+            r'[–-]\s*([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+)?)\s*[–-]',
+        ]
+        
+        for pattern in city_patterns:
+            match = re.search(pattern, text)
+            if match:
+                potential_city = match.group(1).strip()
+                # Verify it's a known city
+                if potential_city in polish_cities:
+                    return potential_city
+        
+        return None
+    
     def extract_facility_name(self, text: str) -> str:
         """
         Extract facility name from text if possible.
@@ -118,6 +178,7 @@ class BaseScraper(ABC):
     def clean_title(self, title: str) -> str:
         """
         Clean and normalize job title.
+        Extracts only the actual job title, removing location, dates, and other metadata.
         
         Args:
             title: Raw title text
@@ -127,6 +188,125 @@ class BaseScraper(ABC):
         """
         if not title:
             return ""
+        
+        # Remove duplicated text patterns (e.g., "Asystent zarząduAsystent zarządu")
+        # This happens when screen-reader text or HTML structure causes duplication
+        # Check if the title is essentially duplicated (first half matches second half)
+        if len(title) > 10:
+            mid = len(title) // 2
+            first_half = title[:mid].strip()
+            second_half = title[mid:].strip()
+            
+            # Check if halves are identical (case-insensitive)
+            if first_half.lower() == second_half.lower():
+                title = first_half
+            # Check if first half is contained in second half (with some tolerance)
+            elif len(first_half) > 5 and first_half.lower() in second_half.lower():
+                # If second half starts with first half, remove the duplicate
+                if second_half.lower().startswith(first_half.lower()):
+                    title = first_half
+            # Check if second half is contained in first half
+            elif len(second_half) > 5 and second_half.lower() in first_half.lower():
+                if first_half.lower().endswith(second_half.lower()):
+                    title = second_half
+        
+        # Also check for word-level duplication (e.g., "Word Word" or "Phrase Phrase")
+        words = title.split()
+        if len(words) > 1:
+            cleaned_words = []
+            i = 0
+            while i < len(words):
+                current_word = words[i]
+                # Check if next word is duplicate
+                if i + 1 < len(words) and current_word.lower() == words[i + 1].lower():
+                    cleaned_words.append(current_word)
+                    i += 2  # Skip the duplicate
+                # Check for phrase duplication (two-word phrases)
+                elif i + 3 < len(words):
+                    phrase1 = f"{current_word} {words[i + 1]}"
+                    phrase2 = f"{words[i + 2]} {words[i + 3]}"
+                    if phrase1.lower() == phrase2.lower():
+                        cleaned_words.append(current_word)
+                        cleaned_words.append(words[i + 1])
+                        i += 4  # Skip the duplicate phrase
+                    else:
+                        cleaned_words.append(current_word)
+                        i += 1
+                else:
+                    cleaned_words.append(current_word)
+                    i += 1
+            title = ' '.join(cleaned_words)
+        
+        # First, try to split on common separators that indicate metadata sections
+        # Patterns like "Miejsce pracy:", "Termin zgłoszenia", "APLIKUJ", etc.
+        separators = [
+            r'Miejsce\s+pracy\s*:',
+            r'Termin\s+zgłoszenia\s*do\s*:',
+            r'Termin\s+zgłoszenia\s*:',
+            r'APLIKUJ',
+            r'ROZMOWY\s+REKRUTACYJNE',
+            r'Zatrudnienie\s+na',
+            r'MOŻLIWOŚĆ\s+ZATRUDNIENIA',
+        ]
+        
+        # Find the first separator and cut everything after it
+        for separator in separators:
+            match = re.search(separator, title, re.IGNORECASE)
+            if match:
+                title = title[:match.start()].strip()
+                break
+        
+        # Handle patterns like:
+        # "Oferta pracy – Facility – City – Role" → extract "Role"
+        # "Facility – City – Role" → extract "Role"
+        if '–' in title or '-' in title:
+            # Split by dash (both en-dash and hyphen)
+            parts = re.split(r'[–-]+', title)
+            parts = [p.strip() for p in parts if p.strip()]
+            
+            # Check if we have at least 3 parts (Facility – City – Role pattern)
+            if len(parts) >= 3:
+                # Check if it starts with "Oferta pracy" or similar (remove that prefix)
+                if re.match(r'^(Oferta\s+pracy|Oferty\s+pracy|Oferta|Praca)', parts[0], re.IGNORECASE):
+                    parts = parts[1:]  # Remove the "Oferta pracy" part
+                
+                if len(parts) >= 2:
+                    # The last part is usually the role
+                    last_part = parts[-1]
+                    
+                    # Check if last part is a medical role
+                    role_keywords = ['pielęgniarka', 'pielęgniarz', 'lekarz', 'położna', 'położny', 
+                                   'ratownik', 'specjalista', 'asystent', 'koordynator', 'kierownik',
+                                   'operacyjn', 'anestezjolog', 'okulista', 'kardiolog', 'radiolog']
+                    
+                    # Check if last part contains role keywords
+                    last_has_role = any(kw in last_part.lower() for kw in role_keywords)
+                    
+                    if last_has_role:
+                        # If last part has multiple roles separated by dash, check if second-to-last is also a role
+                        if len(parts) >= 3:
+                            second_last = parts[-2]
+                            second_has_role = any(kw in second_last.lower() for kw in role_keywords)
+                            
+                            # If both last and second-to-last are roles, combine them
+                            if second_has_role:
+                                # Combine: "Pielęgniarka – Pielęgniarz" or similar
+                                title = f"{second_last} – {last_part}"
+                            else:
+                                # Just use the last part
+                                title = last_part
+                        else:
+                            # Use the last part as the title
+                            title = last_part
+                    elif len(parts) >= 3:
+                        # If we have 3+ parts, try the second-to-last as it might be the role
+                        second_last = parts[-2]
+                        if any(kw in second_last.lower() for kw in role_keywords):
+                            title = second_last
+                    # If last part has multiple roles separated by slash, use it as is
+                    elif '/' in last_part:
+                        # Multiple roles in last part separated by slash, use it
+                        title = last_part
         
         # Remove common prefixes
         title = re.sub(r'^(Oferta pracy|Oferty pracy|Oferta|Praca)\s*[–-]\s*', '', title, flags=re.IGNORECASE)
@@ -140,8 +320,11 @@ class BaseScraper(ABC):
         # Remove "Ta strona używa plików cookies" and similar
         title = re.sub(r'Ta strona.*', '', title, flags=re.IGNORECASE)
         
-        # Remove "Miejsce pracy:" patterns from title
+        # Remove "Miejsce pracy:" patterns from title (in case it wasn't caught above)
         title = re.sub(r'Miejsce\s+pracy\s*:?\s*[A-Za-z\s]*', '', title, flags=re.IGNORECASE)
+        
+        # Remove date patterns that might be in the title
+        title = re.sub(r'\d{1,2}\.\d{1,2}\.\d{4}', '', title)
         
         # Remove extra whitespace
         title = ' '.join(title.split())
@@ -151,19 +334,40 @@ class BaseScraper(ABC):
         
         # If title starts with navigation text, try to find the actual title
         if title and len(title) > 0:
-            # Check if first word is navigation
-            first_words = title.split()[:3]
-            if any(nav in ' '.join(first_words).upper() for nav in ['BIP', 'INTRANET', 'POCZTA']):
+            # Check if title is mostly navigation text (BIP, Intranet, etc.)
+            nav_keywords = ['BIP', 'INTRANET', 'POCZTA', 'REJESTRACJA', 'MENU', 'SZUKAJ']
+            title_upper = title.upper()
+            nav_count = sum(1 for nav in nav_keywords if nav in title_upper)
+            
+            # If more than 2 navigation keywords, it's likely all navigation
+            if nav_count >= 2:
                 # Try to find job-related keywords and take text from there
-                job_keywords = ['pielęgniarka', 'lekarz', 'położna', 'ratownik', 'oferta', 'praca']
-                for i, word in enumerate(title.split()):
+                job_keywords = ['pielęgniarka', 'lekarz', 'położna', 'ratownik', 'oferta', 'praca', 'zatrudn', 'rekrut']
+                words = title.split()
+                for i, word in enumerate(words):
                     if any(kw in word.lower() for kw in job_keywords):
-                        title = ' '.join(title.split()[i:])
+                        title = ' '.join(words[i:])
                         break
+                else:
+                    # If no job keywords found, try to find first meaningful word
+                    # Skip common navigation words
+                    skip_words = ['bip', 'intranet', 'poczta', 'rejestracja', 'menu', 'szukaj', 'ta', 'strona', 'używa', 'plików', 'cookies']
+                    for i, word in enumerate(words):
+                        if word.lower() not in skip_words and len(word) > 2:
+                            title = ' '.join(words[i:])
+                            break
         
-        # Limit length
-        if len(title) > 500:
-            title = title[:497] + "..."
+        # Limit length - titles should be concise
+        if len(title) > 200:
+            # Try to find a natural break point (sentence end, dash, etc.)
+            for break_char in ['.', '–', '-', ':', ';']:
+                if break_char in title[:200]:
+                    title = title[:title[:200].rfind(break_char)].strip()
+                    break
+            else:
+                # If no break point, just truncate at word boundary
+                words = title[:200].split()
+                title = ' '.join(words[:-1]) if len(words) > 1 else title[:200]
         
         return title.strip()
     
@@ -234,6 +438,7 @@ class BaseScraper(ABC):
     def save_to_db(self, jobs: List[Dict], db: Session) -> int:
         """
         Save scraped jobs to database (with deduplication).
+        Legacy method - use save_or_update_to_db for refresh mechanism.
         
         Args:
             jobs: List of job dictionaries
@@ -242,7 +447,22 @@ class BaseScraper(ABC):
         Returns:
             Number of new jobs saved
         """
-        saved_count = 0
+        return self.save_or_update_to_db(jobs, db, update_existing=False)
+    
+    def save_or_update_to_db(self, jobs: List[Dict], db: Session, update_existing: bool = True) -> Dict[str, int]:
+        """
+        Save or update scraped jobs to database.
+        
+        Args:
+            jobs: List of job dictionaries
+            db: Database session
+            update_existing: If True, update existing offers; if False, skip them
+            
+        Returns:
+            Dictionary with counts: {'new': int, 'updated': int, 'skipped': int}
+        """
+        now = datetime.utcnow()
+        result = {'new': 0, 'updated': 0, 'skipped': 0}
         
         for job_data in jobs:
             # Check if job already exists (by source_url)
@@ -250,27 +470,105 @@ class BaseScraper(ABC):
                 JobOffer.source_url == job_data['source_url']
             ).first()
             
-            if existing:
-                continue  # Skip duplicates
-            
-            # Clean data before saving
+            # Clean data before saving/updating
             cleaned_title = self.clean_title(job_data['title'])
             cleaned_facility = self.clean_facility_name(job_data['facility_name'])
             
-            # Create new job offer
-            job_offer = JobOffer(
-                title=cleaned_title,
-                facility_name=cleaned_facility,
-                city=job_data['city'],
-                role=job_data['role'],
-                description=job_data.get('description'),
-                source_url=job_data['source_url'],
-                scraped_at=datetime.utcnow(),
-            )
+            # Extract city from title or description if not explicitly set or if default
+            extracted_city = job_data.get('city', self.city)
             
-            db.add(job_offer)
-            saved_count += 1
+            # If city is the default (Gdańsk) or seems generic, try to extract from title/description
+            if extracted_city == "Gdańsk" or not extracted_city:
+                # Try to extract city from original title (before cleaning)
+                city_from_title = self.extract_city(job_data['title'])
+                if city_from_title:
+                    extracted_city = city_from_title
+                else:
+                    # Try description if available
+                    if job_data.get('description'):
+                        city_from_desc = self.extract_city(job_data['description'])
+                        if city_from_desc:
+                            extracted_city = city_from_desc
+            
+            # If description is missing but title had extra info, try to extract it
+            if not job_data.get('description') and job_data['title'] != cleaned_title:
+                # Extract the part that was removed from title as potential description
+                original_title = job_data['title']
+                # Find where the cleaned title ends in the original
+                if cleaned_title in original_title:
+                    remaining = original_title[original_title.find(cleaned_title) + len(cleaned_title):].strip()
+                    if remaining and len(remaining) > 10:
+                        # Clean up the remaining text for description
+                        remaining = re.sub(r'^(Miejsce\s+pracy|Termin\s+zgłoszenia|APLIKUJ|ROZMOWY).*', '', remaining, flags=re.IGNORECASE)
+                        if remaining and len(remaining) > 10:
+                            job_data['description'] = remaining[:1000]
+            
+            if existing:
+                if not update_existing:
+                    result['skipped'] += 1
+                    continue
+                
+                # Case A: Update existing offer
+                updated = False
+                
+                # Check if content changed
+                if existing.title != cleaned_title:
+                    existing.title = cleaned_title
+                    updated = True
+                if existing.facility_name != cleaned_facility:
+                    existing.facility_name = cleaned_facility
+                    updated = True
+                if existing.city != extracted_city:
+                    existing.city = extracted_city
+                    updated = True
+                if existing.role != job_data['role']:
+                    existing.role = job_data['role']
+                    updated = True
+                if existing.description != job_data.get('description'):
+                    existing.description = job_data.get('description')
+                    updated = True
+                
+                # Always update timestamps
+                existing.scraped_at = now
+                existing.last_seen_at = now
+                
+                # Update source_id if not set
+                if not existing.source_id and self.source_id:
+                    existing.source_id = self.source_id
+                
+                # Update external_job_url if provided
+                if job_data.get('external_job_url') and existing.external_job_url != job_data['external_job_url']:
+                    existing.external_job_url = job_data.get('external_job_url')
+                
+                # Reactivate if was inactive
+                if existing.status == 'inactive':
+                    existing.status = 'active'
+                    updated = True
+                
+                if updated:
+                    result['updated'] += 1
+                else:
+                    result['skipped'] += 1
+            else:
+                # Case B: Insert new offer
+                job_offer = JobOffer(
+                    title=cleaned_title,
+                    facility_name=cleaned_facility,
+                    city=extracted_city,
+                    role=job_data['role'],
+                    description=job_data.get('description'),
+                    source_url=job_data['source_url'],
+                    source_id=self.source_id,
+                    external_job_url=job_data.get('external_job_url'),
+                    scraped_at=now,
+                    first_seen_at=now,
+                    last_seen_at=now,
+                    status='active',
+                )
+                
+                db.add(job_offer)
+                result['new'] += 1
         
         db.commit()
-        return saved_count
+        return result
 
