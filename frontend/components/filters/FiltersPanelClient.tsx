@@ -1,41 +1,57 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MedicalRole } from '@/types';
+import { JobPositionCategory } from '@/lib/filterConfig';
+import { parseFiltersFromURL, buildFiltersURL } from '@/lib/filterUtils';
 import FiltersPanel from './FiltersPanel';
 
 interface FiltersPanelClientProps {
-  roles: MedicalRole[];
   cities: string[];
 }
 
-export default function FiltersPanelClient({ roles, cities }: FiltersPanelClientProps) {
+export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const selectedRole = searchParams.get('role') as MedicalRole | null;
-  const selectedCity = searchParams.get('city');
 
-  const updateFilters = (newRole: MedicalRole | null, newCity: string | null) => {
-    const params = new URLSearchParams();
-    
-    if (newRole) {
-      params.set('role', newRole);
-    }
-    if (newCity) {
-      params.set('city', newCity);
-    }
-    
-    const queryString = params.toString();
+  // Parse current filter state from URL
+  const currentFilters = parseFiltersFromURL(searchParams);
+  const selectedPositions = currentFilters.positions || [];
+  const selectedCities = currentFilters.cities || [];
+  const searchQuery = currentFilters.searchQuery || '';
+
+  const updateFilters = (
+    positions: JobPositionCategory[],
+    cities: string[],
+    search: string
+  ) => {
+    const newFilters = {
+      positions,
+      cities,
+      searchQuery: search,
+    };
+
+    const queryString = buildFiltersURL(newFilters);
     router.push(queryString ? `/?${queryString}` : '/');
   };
 
-  const handleRoleChange = (role: MedicalRole | null) => {
-    updateFilters(role, selectedCity);
+  const handlePositionToggle = (position: JobPositionCategory) => {
+    const newPositions = selectedPositions.includes(position)
+      ? selectedPositions.filter((p) => p !== position)
+      : [...selectedPositions, position];
+
+    updateFilters(newPositions, selectedCities, searchQuery);
   };
 
-  const handleCityChange = (city: string | null) => {
-    updateFilters(selectedRole, city);
+  const handleCityToggle = (city: string) => {
+    const newCities = selectedCities.includes(city)
+      ? selectedCities.filter((c) => c !== city)
+      : [...selectedCities, city];
+
+    updateFilters(selectedPositions, newCities, searchQuery);
+  };
+
+  const handleSearchChange = (query: string) => {
+    updateFilters(selectedPositions, selectedCities, query);
   };
 
   const handleClear = () => {
@@ -44,12 +60,13 @@ export default function FiltersPanelClient({ roles, cities }: FiltersPanelClient
 
   return (
     <FiltersPanel
-      roles={roles}
-      selectedRole={selectedRole}
-      cities={cities}
-      selectedCity={selectedCity}
-      onRoleChange={handleRoleChange}
-      onCityChange={handleCityChange}
+      availableCities={cities}
+      selectedPositions={selectedPositions}
+      selectedCities={selectedCities}
+      searchQuery={searchQuery}
+      onPositionToggle={handlePositionToggle}
+      onCityToggle={handleCityToggle}
+      onSearchChange={handleSearchChange}
       onClear={handleClear}
     />
   );

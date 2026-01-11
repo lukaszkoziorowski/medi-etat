@@ -28,7 +28,7 @@ async def list_jobs(
         offset: Pagination offset (default: 0)
         db: Database session
     """
-    query = db.query(JobOffer)
+    query = db.query(JobOffer).filter(JobOffer.status == 'active')
     
     if role:
         query = query.filter(JobOffer.role == role)

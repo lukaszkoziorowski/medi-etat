@@ -1,30 +1,37 @@
 'use client';
 
-import { MedicalRole } from '@/types';
+import { JobPositionCategory, POSITION_LABELS } from '@/lib/filterConfig';
 import Button from '../ui/Button';
+import GlobalSearch from './GlobalSearch';
 
 interface FiltersPanelProps {
-  roles: MedicalRole[];
-  selectedRole: MedicalRole | null;
-  cities: string[];
-  selectedCity: string | null;
-  onRoleChange: (role: MedicalRole | null) => void;
-  onCityChange: (city: string | null) => void;
+  availableCities: string[];
+  selectedPositions: JobPositionCategory[];
+  selectedCities: string[];
+  searchQuery: string;
+  onPositionToggle: (position: JobPositionCategory) => void;
+  onCityToggle: (city: string) => void;
+  onSearchChange: (query: string) => void;
   onClear: () => void;
   isMobile?: boolean;
 }
 
 export default function FiltersPanel({
-  roles,
-  selectedRole,
-  cities,
-  selectedCity,
-  onRoleChange,
-  onCityChange,
+  availableCities,
+  selectedPositions,
+  selectedCities,
+  searchQuery,
+  onPositionToggle,
+  onCityToggle,
+  onSearchChange,
   onClear,
   isMobile = false,
 }: FiltersPanelProps) {
-  const hasActiveFilters = selectedRole !== null || selectedCity !== null;
+  const allPositions = Object.values(JobPositionCategory);
+  const hasActiveFilters =
+    selectedPositions.length > 0 ||
+    selectedCities.length > 0 ||
+    searchQuery.trim().length > 0;
 
   return (
     <aside className={`bg-[var(--color-bg-secondary)] rounded-[var(--radius-lg)] p-6 ${isMobile ? 'mb-6' : ''}`}>
@@ -38,55 +45,62 @@ export default function FiltersPanel({
       </div>
 
       <div className="space-y-6">
-        {/* Role Filter */}
+        {/* Global Search */}
+        <GlobalSearch value={searchQuery} onChange={onSearchChange} />
+
+        {/* Position Filter - Multi-select checkboxes */}
         <div>
           <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
             Stanowisko
           </label>
           <div className="space-y-2">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="role"
-                checked={selectedRole === null}
-                onChange={() => onRoleChange(null)}
-                className="mr-2"
-              />
-              <span className="text-sm text-[var(--color-text-secondary)]">Wszystkie</span>
-            </label>
-            {roles.map((role) => (
-              <label key={role} className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="role"
-                  checked={selectedRole === role}
-                  onChange={() => onRoleChange(role)}
-                  className="mr-2"
-                />
-                <span className="text-sm text-[var(--color-text-secondary)]">{role}</span>
-              </label>
-            ))}
+            {allPositions.map((position) => {
+              const isChecked = selectedPositions.includes(position);
+              return (
+                <label
+                  key={position}
+                  className="flex items-center cursor-pointer hover:bg-[var(--color-bg-primary)] p-2 rounded transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => onPositionToggle(position)}
+                    className="mr-2 w-4 h-4 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
+                  />
+                  <span className="text-sm text-[var(--color-text-secondary)]">
+                    {POSITION_LABELS[position]}
+                  </span>
+                </label>
+              );
+            })}
           </div>
         </div>
 
-        {/* City Filter */}
-        {cities.length > 0 && (
+        {/* City Filter - Multi-select checkboxes */}
+        {availableCities.length > 0 && (
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-3">
               Lokalizacja
             </label>
-            <select
-              value={selectedCity || ''}
-              onChange={(e) => onCityChange(e.target.value || null)}
-              className="w-full px-3 py-2 border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            >
-              <option value="">Wszystkie miasta</option>
-              {cities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {availableCities.map((city) => {
+                const isChecked = selectedCities.includes(city);
+                return (
+                  <label
+                    key={city}
+                    className="flex items-center cursor-pointer hover:bg-[var(--color-bg-primary)] p-2 rounded transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onCityToggle(city)}
+                      className="mr-2 w-4 h-4 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)]"
+                    />
+                    <span className="text-sm text-[var(--color-text-secondary)]">{city}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

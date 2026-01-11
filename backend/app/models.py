@@ -33,7 +33,14 @@ class JobOffer(Base):
     source_url = Column(String(1000), unique=True, nullable=False, index=True)
     scraped_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Refresh mechanism fields
+    source_id = Column(String(100), nullable=True, index=True)  # Identifier for the source scraper
+    external_job_url = Column(String(1000), nullable=True)  # Original job page URL (if different from source_url)
+    first_seen_at = Column(DateTime, nullable=True)  # When this offer was first discovered
+    last_seen_at = Column(DateTime, nullable=True, index=True)  # When this offer was last seen during refresh
+    status = Column(String(20), default='active', nullable=False, index=True)  # 'active' | 'inactive'
 
     def __repr__(self):
-        return f"<JobOffer(id={self.id}, title='{self.title[:50]}...', facility='{self.facility_name}', city='{self.city}')>"
+        return f"<JobOffer(id={self.id}, title='{self.title[:50]}...', facility='{self.facility_name}', city='{self.city}', status='{self.status}')>"
 

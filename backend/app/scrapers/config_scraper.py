@@ -90,7 +90,7 @@ class ConfigBasedScraper(BaseScraper):
             # For MVP, we'll skip pagination - can be added later
             pass
         
-        # Remove duplicates
+        # Remove duplicates by source_url
         seen_urls = set()
         unique_jobs = []
         for job in jobs:
@@ -98,7 +98,28 @@ class ConfigBasedScraper(BaseScraper):
                 seen_urls.add(job['source_url'])
                 unique_jobs.append(job)
         
-        return unique_jobs
+        # Additional deduplication: For sources that create hash-based URLs from the same base URL,
+        # group by base URL (without hash) and keep only one job per base URL
+        # This prevents duplicates like: base_url#hash1, base_url#hash2, etc.
+        import re
+        base_url_groups = {}
+        final_jobs = []
+        
+        for job in unique_jobs:
+            # Remove hash anchor from URL to get base URL
+            base_url = re.sub(r'#.*$', '', job['source_url'])
+            
+            # If we haven't seen this base URL, keep the job
+            if base_url not in base_url_groups:
+                base_url_groups[base_url] = job
+                final_jobs.append(job)
+            else:
+                # We've seen this base URL before - this is a duplicate
+                # Keep the first one we encountered (already in final_jobs)
+                # Skip this duplicate
+                pass
+        
+        return final_jobs
     
     def _extract_job(self, item) -> Optional[Dict]:
         """Extract job data from a job item element."""
@@ -165,26 +186,49 @@ class ConfigBasedScraper(BaseScraper):
     
     def _extract_title(self, item) -> Optional[str]:
         """Extract title from job item."""
+        def get_text_without_hidden(elem):
+            """Get text from element excluding screen-reader and hidden elements."""
+            if not elem:
+                return None
+            # Clone the element to avoid modifying the original
+            from bs4 import BeautifulSoup
+            elem_str = str(elem)
+            elem_copy = BeautifulSoup(elem_str, 'html.parser')
+            # Remove hidden elements
+            for hidden in elem_copy.select('.screen-reader-text, .sr-only, [aria-hidden="true"]'):
+                hidden.decompose()
+            return elem_copy.get_text(strip=True)
+        
         if self.config.title_selector:
             title_elem = item.select_one(self.config.title_selector)
             if title_elem:
                 if self.config.title_from == 'text':
-                    return title_elem.get_text(strip=True)
+                    # Remove screen-reader text and other hidden elements to avoid duplication
+                    text = get_text_without_hidden(title_elem)
+                    return text if text else title_elem.get_text(strip=True)
                 elif self.config.title_from == 'attribute':
                     return title_elem.get(self.config.title_from, '')
                 else:
-                    return title_elem.get_text(strip=True)
+                    # Remove screen-reader text
+                    text = get_text_without_hidden(title_elem)
+                    return text if text else title_elem.get_text(strip=True)
         
         # Fallback: try to find title in item
         heading = item.find(['h1', 'h2', 'h3', 'h4', 'h5'])
         if heading:
-            return heading.get_text(strip=True)
+            # Remove screen-reader text
+            text = get_text_without_hidden(heading)
+            return text if text else heading.get_text(strip=True)
         
         link = item.find('a')
         if link:
-            return link.get_text(strip=True)
+            # Remove screen-reader text
+            text = get_text_without_hidden(link)
+            return text if text else link.get_text(strip=True)
         
-        return item.get_text(strip=True)
+        # Remove screen-reader text from item
+        text = get_text_without_hidden(item)
+        return text if text else item.get_text(strip=True)
     
     def _extract_link(self, item) -> Optional[str]:
         """Extract link from job item."""

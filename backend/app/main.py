@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.api import jobs
+from app.api import jobs, admin
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -26,6 +26,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(jobs.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
