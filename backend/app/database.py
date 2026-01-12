@@ -31,38 +31,43 @@ if is_sqlite:
 else:
     # PostgreSQL configuration
     # PythonAnywhere free tier doesn't support IPv6 connections
-    # We need to resolve the hostname to IPv4 and use that in the connection string
+    # Supabase connection strings may resolve to IPv6, so we need to force IPv4
     parsed = urlparse(DATABASE_URL)
     hostname = parsed.hostname
     
-    # Resolve hostname to IPv4 address
-    try:
-        # Get all IP addresses for the hostname
-        ip_addresses = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
-        # Prefer IPv4 (AF_INET)
-        ipv4_address = None
-        for addr_info in ip_addresses:
-            if addr_info[0] == socket.AF_INET:  # IPv4
-                ipv4_address = addr_info[4][0]
-                break
-        
-        if ipv4_address:
-            # Replace hostname with IPv4 address in connection string
-            netloc = parsed.netloc.replace(hostname, ipv4_address)
-            DATABASE_URL = urlunparse((
-                parsed.scheme,
-                netloc,
-                parsed.path,
-                parsed.params,
-                parsed.query,
-                parsed.fragment
-            ))
-            logger = __import__('logging').getLogger(__name__)
-            logger.info(f"Resolved {hostname} to IPv4: {ipv4_address}")
-    except Exception as e:
-        # If resolution fails, try original URL
-        logger = __import__('logging').getLogger(__name__)
-        logger.warning(f"Could not resolve {hostname} to IPv4: {e}. Using original URL.")
+    # Try to resolve hostname to IPv4 address
+    # If the hostname is a Supabase direct connection, we should use the pooler instead
+    if hostname and 'supabase.co' in hostname and '.pooler.' not in hostname:
+        # Use Supabase connection pooler (uses IPv4 and is more reliable)
+        # Replace direct connection with pooler connection
+        # Format: db.xxx.supabase.co -> db.xxx.supabase.co:6543 (pooler port)
+        # Or use: aws-0-[region].pooler.supabase.com:6543
+        # For now, try resolving to IPv4 first
+        try:
+            # Force IPv4 resolution
+            ip_addresses = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
+            ipv4_address = None
+            for addr_info in ip_addresses:
+                if addr_info[0] == socket.AF_INET:  # IPv4
+                    ipv4_address = addr_info[4][0]
+                    break
+            
+            if ipv4_address:
+                # Replace hostname with IPv4 address
+                netloc = parsed.netloc.replace(hostname, ipv4_address)
+                DATABASE_URL = urlunparse((
+                    parsed.scheme,
+                    netloc,
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment
+                ))
+                import logging
+                logging.getLogger(__name__).info(f"Resolved {hostname} to IPv4: {ipv4_address}")
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Could not resolve {hostname} to IPv4: {e}")
     
     engine = create_engine(
         DATABASE_URL,
