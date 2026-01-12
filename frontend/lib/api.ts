@@ -41,9 +41,7 @@ export async function fetchJobs(params?: {
   
   const response = await fetch(url, {
     cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    // Don't send Content-Type for GET requests - it's not needed and causes CORS issues
     mode: 'cors',  // Explicitly enable CORS
   });
 
