@@ -100,11 +100,16 @@ export default function JobsPageClient() {
   }
 
   if (error) {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     return (
       <div className="mx-auto max-w-[var(--container-max-width)] px-[var(--container-padding)] py-8">
         <div className="text-center text-red-500 mb-4">{error}</div>
         <div className="text-center text-sm text-gray-500">
-          Make sure the backend API is running on http://localhost:8000
+          Unable to connect to backend API at {apiUrl}
+          <br />
+          {process.env.NODE_ENV === 'production' 
+            ? 'Please check that the backend is running and CORS is configured correctly.'
+            : 'Make sure the backend API is running.'}
         </div>
       </div>
     );

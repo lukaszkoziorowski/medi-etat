@@ -5,7 +5,13 @@
 import { JobsResponse, JobOffer, MedicalRole } from '@/types';
 
 // Use environment variable for API URL (set in Vercel) or default to localhost for development
+// Note: NEXT_PUBLIC_* variables are embedded at build time in Next.js
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// Log the API URL being used (for debugging)
+if (typeof window !== 'undefined') {
+  console.log('API Base URL:', API_BASE_URL);
+}
 
 export async function fetchJobs(params?: {
   role?: MedicalRole | null;
@@ -34,6 +40,7 @@ export async function fetchJobs(params?: {
     headers: {
       'Content-Type': 'application/json',
     },
+    mode: 'cors',  // Explicitly enable CORS
   });
 
   console.log('Response status:', response.status, response.statusText);

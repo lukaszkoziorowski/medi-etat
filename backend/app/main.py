@@ -1,6 +1,7 @@
 """
 FastAPI application for Medietat job search engine.
 """
+import os
 import logging
 from contextlib import asynccontextmanager
 
@@ -63,9 +64,23 @@ app = FastAPI(
 )
 
 # CORS middleware - allow frontend to call API
+# Get frontend URL from environment variable or use localhost for development
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# Build allowed origins list
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://medi-etat.vercel.app",  # Production Vercel deployment
+]
+
+# Add FRONTEND_URL to list if not already there
+if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Next.js default ports
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
