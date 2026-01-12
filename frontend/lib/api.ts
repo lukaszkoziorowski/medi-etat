@@ -61,7 +61,9 @@ export async function fetchJobs(params?: {
 }
 
 export async function fetchJob(id: number): Promise<JobOffer> {
-  const response = await fetch(`${API_BASE_URL}/api/jobs/${id}`, {
+  // Ensure no double slashes
+  const url = `${API_BASE_URL}/api/jobs/${id}`.replace(/([^:]\/)\/+/g, '$1');
+  const response = await fetch(url, {
     cache: 'no-store',
   });
 
