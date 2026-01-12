@@ -87,7 +87,7 @@ app.add_middleware(
     allow_origins=["*"],  # Allow all origins to avoid CORS issues (can be restricted later for security)
     allow_credentials=False,  # Must be False when allow_origins=["*"]
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],  # Explicitly allow common headers
     expose_headers=["*"],
 )
 
