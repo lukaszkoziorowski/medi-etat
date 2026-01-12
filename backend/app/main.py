@@ -112,3 +112,10 @@ async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
 
+
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Handle OPTIONS requests for CORS preflight."""
+    # FastAPI CORS middleware should handle this, but explicit handler ensures it works
+    return {"status": "ok"}
+
