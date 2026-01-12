@@ -7,6 +7,7 @@ import JobList from '@/components/jobs/JobList';
 import LoadingState from '@/components/ui/LoadingState';
 import { fetchJobs } from '@/lib/api';
 import { filterJobs, parseFiltersFromURL, FilterState } from '@/lib/filterUtils';
+import { sortJobs, SortOption } from '@/lib/sortUtils';
 import { JobOffer } from '@/types';
 
 export default function JobsPageClient() {
@@ -15,38 +16,40 @@ export default function JobsPageClient() {
   const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
+  // Function to load jobs (can be called from outside)
+  const loadJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching jobs...');
+      const jobsData = await fetchJobs({ limit: 1000 });
+      console.log('Jobs fetched:', jobsData);
+      
+      setAllJobs(jobsData.results || []);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Nie udało się załadować ofert pracy';
+      setError(errorMessage);
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch all jobs on mount
   useEffect(() => {
-    let cancelled = false;
-    
-    async function loadJobs() {
-      try {
-        setLoading(true);
-        setError(null);
-        console.log('Fetching jobs...');
-        const jobsData = await fetchJobs({ limit: 1000 });
-        console.log('Jobs fetched:', jobsData);
-        
-        if (!cancelled) {
-          setAllJobs(jobsData.results || []);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const errorMessage = err instanceof Error ? err.message : 'Nie udało się załadować ofert pracy';
-          setError(errorMessage);
-          console.error('Error fetching jobs:', err);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
     loadJobs();
+  }, []);
+
+  // Listen for custom refresh event to refetch jobs
+  useEffect(() => {
+    const handleRefresh = () => {
+      loadJobs();
+    };
+
+    window.addEventListener('jobs-refresh', handleRefresh);
     
     return () => {
-      cancelled = true;
+      window.removeEventListener('jobs-refresh', handleRefresh);
     };
   }, []);
 
@@ -69,16 +72,23 @@ export default function JobsPageClient() {
     }
   }, [searchParams]);
 
+  // Get sort option from URL
+  const sortOption: SortOption = useMemo(() => {
+    const sort = searchParams.get('sort') as SortOption;
+    return sort || 'recommended';
+  }, [searchParams]);
+
   // Extract unique cities from all jobs
   const availableCities = useMemo(() => {
     return Array.from(new Set(allJobs.map((j) => j.city))).sort();
   }, [allJobs]);
 
-  // Apply client-side filtering
+  // Apply client-side filtering and sorting
   const filteredJobs = useMemo(() => {
     if (loading) return [];
-    return filterJobs(allJobs, filterState);
-  }, [allJobs, filterState, loading]);
+    const filtered = filterJobs(allJobs, filterState);
+    return sortJobs(filtered, sortOption);
+  }, [allJobs, filterState, sortOption, loading]);
 
   if (loading) {
     return <LoadingState />;

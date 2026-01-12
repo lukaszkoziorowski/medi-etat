@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { JobPositionCategory } from '@/lib/filterConfig';
 import { parseFiltersFromURL, buildFiltersURL } from '@/lib/filterUtils';
+import { SortOption } from '@/lib/sortUtils';
 import FiltersPanel from './FiltersPanel';
 
 interface FiltersPanelClientProps {
@@ -18,11 +19,13 @@ export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) 
   const selectedPositions = currentFilters.positions || [];
   const selectedCities = currentFilters.cities || [];
   const searchQuery = currentFilters.searchQuery || '';
+  const sortOption = (searchParams.get('sort') as SortOption) || 'recommended';
 
   const updateFilters = (
     positions: JobPositionCategory[],
     cities: string[],
-    search: string
+    search: string,
+    sort: SortOption = 'recommended'
   ) => {
     const newFilters = {
       positions,
@@ -31,7 +34,13 @@ export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) 
     };
 
     const queryString = buildFiltersURL(newFilters);
-    router.push(queryString ? `/?${queryString}` : '/');
+    const params = new URLSearchParams(queryString);
+    if (sort && sort !== 'recommended') {
+      params.set('sort', sort);
+    }
+    
+    const finalQuery = params.toString();
+    router.push(finalQuery ? `/?${finalQuery}` : '/');
   };
 
   const handlePositionToggle = (position: JobPositionCategory) => {
@@ -39,7 +48,7 @@ export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) 
       ? selectedPositions.filter((p) => p !== position)
       : [...selectedPositions, position];
 
-    updateFilters(newPositions, selectedCities, searchQuery);
+    updateFilters(newPositions, selectedCities, searchQuery, sortOption);
   };
 
   const handleCityToggle = (city: string) => {
@@ -47,11 +56,15 @@ export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) 
       ? selectedCities.filter((c) => c !== city)
       : [...selectedCities, city];
 
-    updateFilters(selectedPositions, newCities, searchQuery);
+    updateFilters(selectedPositions, newCities, searchQuery, sortOption);
   };
 
   const handleSearchChange = (query: string) => {
-    updateFilters(selectedPositions, selectedCities, query);
+    updateFilters(selectedPositions, selectedCities, query, sortOption);
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    updateFilters(selectedPositions, selectedCities, searchQuery, sort);
   };
 
   const handleClear = () => {
@@ -64,9 +77,11 @@ export default function FiltersPanelClient({ cities }: FiltersPanelClientProps) 
       selectedPositions={selectedPositions}
       selectedCities={selectedCities}
       searchQuery={searchQuery}
+      sortOption={sortOption}
       onPositionToggle={handlePositionToggle}
       onCityToggle={handleCityToggle}
       onSearchChange={handleSearchChange}
+      onSortChange={handleSortChange}
       onClear={handleClear}
     />
   );

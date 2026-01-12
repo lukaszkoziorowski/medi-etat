@@ -136,6 +136,23 @@ class ConfigBasedScraper(BaseScraper):
         if any(exclude in title_lower for exclude in exclude_keywords):
             return None
         
+        # Filter out document attachments and non-job content
+        non_job_patterns = [
+            'załącznik', 'załacznik', 'attachment',
+            'konkurs na dyr', 'konkurs_na_dyr', 'konkurs na stanowisko dyrektora',
+            'klauzula informacyjna', 'klauzula',
+            'przetarg', 'sprzedaż środka trwałego',
+            'konkurs ofert na udzielanie',
+            'full stack developer', 'team leader developer', 'mid developer', 'junior developer',
+            'разработчик', 'младший',  # Russian: developer, junior
+        ]
+        if any(pattern in title_lower for pattern in non_job_patterns):
+            return None
+        
+        # Filter out titles that are clearly document names
+        if title_lower.startswith('załącznik') or title_lower.startswith('załacznik'):
+            return None
+        
         # Filter out email addresses
         if '@' in title or 'mailto:' in title_lower:
             return None

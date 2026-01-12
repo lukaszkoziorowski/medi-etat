@@ -174,6 +174,7 @@ def main():
     use_playwright = False
     
     # Parse arguments
+    auto_accept = False
     i = 2
     while i < len(sys.argv):
         if sys.argv[i] == '--city' and i + 1 < len(sys.argv):
@@ -184,6 +185,9 @@ def main():
             i += 2
         elif sys.argv[i] == '--playwright':
             use_playwright = True
+            i += 1
+        elif sys.argv[i] == '--yes' or sys.argv[i] == '-y':
+            auto_accept = True
             i += 1
         else:
             i += 1
@@ -214,7 +218,11 @@ def main():
     print("\n" + "=" * 60)
     confidence = detection_result.get('confidence', 'LOW')
     
-    if confidence == 'HIGH' and test_success:
+    if auto_accept:
+        print("Auto-accepting config (--yes flag)")
+        save_config(config)
+        print(f"✓ Config saved: {config.source_id}.json")
+    elif confidence == 'HIGH' and test_success:
         print("Confidence: HIGH - Auto-accepting config")
         save_config(config)
         print(f"✓ Config saved: {config.source_id}.json")

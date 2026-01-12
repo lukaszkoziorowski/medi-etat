@@ -53,7 +53,7 @@ export default function GlobalSearch({
           isExternalUpdate.current = false;
         }}
         placeholder={placeholder}
-        className="w-full px-4 py-2.5 border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+        className="w-full px-4 py-2.5 border border-[var(--color-border)] rounded-[var(--radius-md)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
       />
     </div>
   );

@@ -27,8 +27,10 @@ export default function JobCard({ job }: JobCardProps) {
     : null;
 
   return (
-    <Link href={`/job/${job.id}`} className="h-full block">
-      <article className="bg-[var(--color-bg-primary)] border border-[var(--color-border)] rounded-[var(--radius-lg)] p-6 hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
+    <div className="h-full block group relative">
+      <Link href={`/job/${job.id}`} className="h-full block">
+        <article className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 cursor-pointer h-full flex flex-col transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg hover:shadow-gray-200/60">
+        
         {/* Category Badge */}
         <div className="mb-4">
           <CategoryBadge 
@@ -56,8 +58,35 @@ export default function JobCard({ job }: JobCardProps) {
             {displaySummary}
           </p>
         )}
-      </article>
-    </Link>
+        </article>
+      </Link>
+      
+      {/* External Link Button - appears on hover, positioned outside Link to avoid nesting */}
+      {job.source_url && (
+        <a
+          href={job.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute top-4 right-4 w-8 h-8 rounded-full border border-gray-300 bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-50 hover:border-gray-400 z-10"
+          aria-label="Otwórz źródło oferty"
+        >
+          <svg
+            className="w-4 h-4 text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </a>
+      )}
+    </div>
   );
 }
 

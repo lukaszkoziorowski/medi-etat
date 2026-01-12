@@ -30,7 +30,7 @@ def get_scraper(name: str) -> BaseScraper:
         name: Scraper name (config ID or hardcoded scraper name)
         
     Returns:
-        Scraper instance
+        Scraper instance with source_id set
         
     Raises:
         ValueError: If scraper name not found
@@ -38,12 +38,16 @@ def get_scraper(name: str) -> BaseScraper:
     # Try config-based scraper first
     config = load_config(name)
     if config:
-        return ConfigBasedScraper(config)
+        scraper = ConfigBasedScraper(config)
+        scraper.source_id = name  # Set source_id
+        return scraper
     
     # Fall back to hardcoded scrapers
     if name in HARDCODED_SCRAPERS:
         scraper_class = HARDCODED_SCRAPERS[name]
-        return scraper_class()
+        scraper = scraper_class()
+        scraper.source_id = name  # Set source_id
+        return scraper
     
     # List all available scrapers
     all_scrapers = list_hardcoded_scrapers() + list_config_scrapers()

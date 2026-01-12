@@ -61,7 +61,8 @@ class StructureDetector:
         if results['confidence'] == 'LOW':
             patterns = self._find_repeating_patterns()
             if patterns:
-                results['reasoning'].append(f"Found repeating pattern: {patterns[0]['selector']}")
+                pattern_info = patterns[0].get('selector', patterns[0].get('item', 'pattern'))
+                results['reasoning'].append(f"Found repeating pattern: {pattern_info}")
                 results['jobListContainer'] = patterns[0].get('container')
                 results['jobItem'] = patterns[0].get('item')
                 results['title'] = patterns[0].get('title')

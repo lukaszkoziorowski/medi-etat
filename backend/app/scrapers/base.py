@@ -504,14 +504,6 @@ class BaseScraper(ABC):
                         if remaining and len(remaining) > 10:
                             job_data['description'] = remaining[:1000]
             
-            # Generate summary (once, stored in database)
-            job_summary = extract_summary(
-                title=cleaned_title,
-                description=job_data.get('description'),
-                facility_name=cleaned_facility,
-                city=extracted_city
-            )
-            
             if existing:
                 if not update_existing:
                     result['skipped'] += 1
@@ -519,11 +511,13 @@ class BaseScraper(ABC):
                 
                 # Case A: Update existing offer
                 updated = False
+                content_changed = False
                 
                 # Check if content changed
                 if existing.title != cleaned_title:
                     existing.title = cleaned_title
                     updated = True
+                    content_changed = True
                 if existing.facility_name != cleaned_facility:
                     existing.facility_name = cleaned_facility
                     updated = True
@@ -536,10 +530,19 @@ class BaseScraper(ABC):
                 if existing.description != job_data.get('description'):
                     existing.description = job_data.get('description')
                     updated = True
-                # Update summary if description or title changed
-                if existing.summary != job_summary:
-                    existing.summary = job_summary
-                    updated = True
+                    content_changed = True
+                
+                # Generate summary only if content changed (title or description)
+                if content_changed:
+                    job_summary = extract_summary(
+                        title=cleaned_title,
+                        description=job_data.get('description'),
+                        facility_name=cleaned_facility,
+                        city=extracted_city
+                    )
+                    if existing.summary != job_summary:
+                        existing.summary = job_summary
+                        updated = True
                 
                 # Always update timestamps
                 existing.scraped_at = now
@@ -564,6 +567,14 @@ class BaseScraper(ABC):
                     result['skipped'] += 1
             else:
                 # Case B: Insert new offer
+                # Generate summary for new offers
+                job_summary = extract_summary(
+                    title=cleaned_title,
+                    description=job_data.get('description'),
+                    facility_name=cleaned_facility,
+                    city=extracted_city
+                )
+                
                 job_offer = JobOffer(
                     title=cleaned_title,
                     facility_name=cleaned_facility,

@@ -5,15 +5,20 @@
   --color-primary: #2563eb;
   --color-primary-dark: #1e40af;
   --color-primary-light: #3b82f6;
+  
+  /* Button Colors */
+  --color-button-surface: #00C1B7;
+  --color-button-text: #01201E;
 
   /* Neutral Colors */
   --color-text-primary: #1f2937;
   --color-text-secondary: #6b7280;
   --color-text-muted: #9ca3af;
 
-  --color-bg-primary: #ffffff;
+  --color-bg-primary: #F7F8FA;
   --color-bg-secondary: #f9fafb;
   --color-bg-tertiary: #f3f4f6;
+  --color-surface: #FFFFFF;
 
   --color-border: #e5e7eb;
   --color-border-light: #f3f4f6;
@@ -32,8 +37,8 @@
   --color-role-inny: #6b7280;
 
   /* Typography */
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-family-heading: var(--font-family-base);
+  --font-family-base: var(--font-google-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-family-heading: var(--font-google-sans), var(--font-family-base);
   --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
 
   --font-size-xs: 0.75rem;
