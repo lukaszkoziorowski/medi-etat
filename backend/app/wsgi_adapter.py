@@ -39,6 +39,10 @@ class ASGI2WSGI:
                 header_name = key[5:].replace('_', '-').title()
                 headers.append([header_name.encode('latin-1'), value.encode('latin-1')])
         
+        # Add Origin header explicitly if present (important for CORS)
+        if 'HTTP_ORIGIN' in environ:
+            headers.append([b'origin', environ['HTTP_ORIGIN'].encode('latin-1')])
+        
         # Add content-type and content-length if present
         if 'CONTENT_TYPE' in environ:
             headers.append([b'content-type', environ['CONTENT_TYPE'].encode('latin-1')])
@@ -124,8 +128,17 @@ class ASGI2WSGI:
         except asyncio.QueueEmpty:
             pass
         
-        # Format status
-        status = f'{status_code} OK' if status_code == 200 else f'{status_code} Error'
+        # Format status properly (include status text)
+        if status_code == 200:
+            status = '200 OK'
+        elif status_code == 204:
+            status = '204 No Content'
+        elif status_code == 404:
+            status = '404 Not Found'
+        elif status_code >= 500:
+            status = f'{status_code} Internal Server Error'
+        else:
+            status = f'{status_code} Error'
         
         # Start WSGI response
         start_response(status, response_headers)

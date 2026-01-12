@@ -80,11 +80,14 @@ if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
     ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 # Use CORS middleware with regex pattern to allow all Vercel preview URLs
-# This allows both production (medi-etat.vercel.app) and preview deployments (medi-etat-*.vercel.app)
+# Vercel preview URLs can have various patterns:
+# - https://medi-etat-*.vercel.app
+# - https://medi-etat-*-koziorowskilukaszs-projects.vercel.app
+# - https://*.vercel.app (catch-all for any Vercel deployment)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,  # Explicit origins
-    allow_origin_regex=r"https://medi-etat-.*\.vercel\.app",  # Vercel preview URLs pattern
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow ALL Vercel deployments (preview and production)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
