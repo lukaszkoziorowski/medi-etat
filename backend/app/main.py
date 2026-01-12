@@ -78,9 +78,22 @@ ALLOWED_ORIGINS = [
 if FRONTEND_URL and FRONTEND_URL not in ALLOWED_ORIGINS:
     ALLOWED_ORIGINS.append(FRONTEND_URL)
 
+# Allow all Vercel preview deployments (they have pattern: https://medi-etat-*.vercel.app)
+VERCEL_PATTERN = re.compile(r'^https://medi-etat-.*\.vercel\.app$')
+
+def is_origin_allowed(origin: str) -> bool:
+    """Check if an origin is allowed (including Vercel preview URLs)"""
+    if origin in ALLOWED_ORIGINS:
+        return True
+    # Check if it matches Vercel preview pattern
+    if VERCEL_PATTERN.match(origin):
+        return True
+    return False
+
+# Use a custom CORS middleware that allows Vercel preview URLs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://medi-etat-.*\.vercel\.app|https://medi-etat\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

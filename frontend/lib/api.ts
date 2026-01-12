@@ -6,7 +6,10 @@ import { JobsResponse, JobOffer, MedicalRole } from '@/types';
 
 // Use environment variable for API URL (set in Vercel) or default to localhost for development
 // Note: NEXT_PUBLIC_* variables are embedded at build time in Next.js
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// Remove trailing slash if present to avoid double slashes
+API_BASE_URL = API_BASE_URL.replace(/\/+$/, '');
 
 // Log the API URL being used (for debugging)
 if (typeof window !== 'undefined') {
@@ -31,7 +34,8 @@ export async function fetchJobs(params?: {
   }
 
   const queryString = searchParams.toString();
-  const url = `${API_BASE_URL}/api/jobs${queryString ? `?${queryString}` : ''}`;
+  // Ensure we don't have double slashes
+  const url = `${API_BASE_URL}/api/jobs${queryString ? `?${queryString}` : ''}`.replace(/([^:]\/)\/+/g, '$1');
   
   console.log('Fetching from URL:', url);
   
