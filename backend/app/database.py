@@ -2,9 +2,11 @@
 Database connection and session management.
 """
 import os
+import socket
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
+from urllib.parse import urlparse, urlunparse
 
 from app.models import Base
 
@@ -28,12 +30,49 @@ if is_sqlite:
     )
 else:
     # PostgreSQL configuration
+    # PythonAnywhere free tier doesn't support IPv6 connections
+    # We need to resolve the hostname to IPv4 and use that in the connection string
+    parsed = urlparse(DATABASE_URL)
+    hostname = parsed.hostname
+    
+    # Resolve hostname to IPv4 address
+    try:
+        # Get all IP addresses for the hostname
+        ip_addresses = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
+        # Prefer IPv4 (AF_INET)
+        ipv4_address = None
+        for addr_info in ip_addresses:
+            if addr_info[0] == socket.AF_INET:  # IPv4
+                ipv4_address = addr_info[4][0]
+                break
+        
+        if ipv4_address:
+            # Replace hostname with IPv4 address in connection string
+            netloc = parsed.netloc.replace(hostname, ipv4_address)
+            DATABASE_URL = urlunparse((
+                parsed.scheme,
+                netloc,
+                parsed.path,
+                parsed.params,
+                parsed.query,
+                parsed.fragment
+            ))
+            logger = __import__('logging').getLogger(__name__)
+            logger.info(f"Resolved {hostname} to IPv4: {ipv4_address}")
+    except Exception as e:
+        # If resolution fails, try original URL
+        logger = __import__('logging').getLogger(__name__)
+        logger.warning(f"Could not resolve {hostname} to IPv4: {e}. Using original URL.")
+    
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,  # Verify connections before using
         pool_size=5,  # Connection pool size
         max_overflow=10,  # Max overflow connections
         echo=False,
+        connect_args={
+            "connect_timeout": 10,
+        },
     )
 
 # Create session factory
