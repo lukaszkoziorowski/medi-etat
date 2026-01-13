@@ -30,8 +30,17 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - Railway will auto-detect it's a Python project
    - Set **Root Directory**: `backend`
    - Railway will use the `Procfile` we created
+   
+3. **Configure Build Settings (Important for Playwright):**
+   - Go to your service → "Settings" tab
+   - Scroll to "Build Command"
+   - Add this build command:
+     ```bash
+     pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium
+     ```
+   - Or leave it empty and Railway will auto-detect (but Playwright might need manual install)
 
-3. **Add Environment Variables:**
+4. **Add Environment Variables:**
    - Go to your service → "Variables" tab
    - Add these variables:
      ```
@@ -42,7 +51,7 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - Replace `[YOUR-PASSWORD]` with your Supabase password
    - Replace `[PROJECT-REF]` with your Supabase project reference (e.g., `bcwbndguvzwegaaqvlzq`)
 
-4. **Deploy:**
+5. **Deploy:**
    - Railway will automatically build and deploy
    - Wait for deployment to complete (2-3 minutes)
    - Note your Railway URL (e.g., `https://medi-etat-production.up.railway.app`)
