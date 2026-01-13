@@ -26,10 +26,13 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - Choose your `medi-etat` repository
    - Click "Deploy Now"
 
-2. **Configure Service:**
-   - Railway will auto-detect it's a Python project
-   - Set **Root Directory**: `backend`
-   - Railway will use the `Procfile` we created
+2. **Configure Service (CRITICAL - Do This First!):**
+   - After Railway creates the service, go to **Settings** tab
+   - Scroll down to **"Root Directory"** section
+   - **IMPORTANT**: Set Root Directory to: `backend`
+   - This tells Railway to build from the `backend/` folder, not the repo root
+   - Without this, Railway will see both `backend/` and `frontend/` and fail to detect the language
+   - Click **"Save"**
    
 3. **Configure Build Settings (Important for Playwright):**
    - Go to your service → "Settings" tab
