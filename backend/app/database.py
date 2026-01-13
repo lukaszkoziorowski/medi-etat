@@ -31,43 +31,54 @@ if is_sqlite:
 else:
     # PostgreSQL configuration
     # PythonAnywhere free tier doesn't support IPv6 connections
-    # Supabase connection strings may resolve to IPv6, so we need to force IPv4
-    parsed = urlparse(DATABASE_URL)
-    hostname = parsed.hostname
-    
-    # Try to resolve hostname to IPv4 address
-    # If the hostname is a Supabase direct connection, we should use the pooler instead
-    if hostname and 'supabase.co' in hostname and '.pooler.' not in hostname:
-        # Use Supabase connection pooler (uses IPv4 and is more reliable)
-        # Replace direct connection with pooler connection
-        # Format: db.xxx.supabase.co -> db.xxx.supabase.co:6543 (pooler port)
-        # Or use: aws-0-[region].pooler.supabase.com:6543
-        # For now, try resolving to IPv4 first
-        try:
-            # Force IPv4 resolution
-            ip_addresses = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
-            ipv4_address = None
-            for addr_info in ip_addresses:
-                if addr_info[0] == socket.AF_INET:  # IPv4
-                    ipv4_address = addr_info[4][0]
-                    break
-            
-            if ipv4_address:
-                # Replace hostname with IPv4 address
-                netloc = parsed.netloc.replace(hostname, ipv4_address)
-                DATABASE_URL = urlunparse((
-                    parsed.scheme,
-                    netloc,
-                    parsed.path,
-                    parsed.params,
-                    parsed.query,
-                    parsed.fragment
-                ))
-                import logging
-                logging.getLogger(__name__).info(f"Resolved {hostname} to IPv4: {ipv4_address}")
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"Could not resolve {hostname} to IPv4: {e}")
+    # If using Supabase pooler (recommended), it already uses IPv4
+    # Only try IPv4 resolution for direct Supabase connections
+    try:
+        parsed = urlparse(DATABASE_URL)
+        hostname = parsed.hostname
+        
+        # Only try IPv4 resolution if:
+        # 1. We have a hostname
+        # 2. It's a Supabase direct connection (not pooler)
+        # 3. It's not already an IP address
+        if hostname and 'supabase.co' in hostname and '.pooler.' not in hostname:
+            # Check if hostname is already an IP address
+            try:
+                socket.inet_aton(hostname)  # Will raise exception if not an IP
+                # It's already an IP, skip resolution
+                hostname = None
+            except socket.error:
+                # Not an IP, try to resolve to IPv4
+                try:
+                    # Force IPv4 resolution
+                    ip_addresses = socket.getaddrinfo(hostname, None, socket.AF_INET, socket.SOCK_STREAM)
+                    ipv4_address = None
+                    for addr_info in ip_addresses:
+                        if addr_info[0] == socket.AF_INET:  # IPv4
+                            ipv4_address = addr_info[4][0]
+                            break
+                    
+                    if ipv4_address:
+                        # Replace hostname with IPv4 address
+                        netloc = parsed.netloc.replace(hostname, ipv4_address)
+                        DATABASE_URL = urlunparse((
+                            parsed.scheme,
+                            netloc,
+                            parsed.path,
+                            parsed.params,
+                            parsed.query,
+                            parsed.fragment
+                        ))
+                        import logging
+                        logging.getLogger(__name__).info(f"Resolved {hostname} to IPv4: {ipv4_address}")
+                except (socket.gaierror, OSError, ValueError) as e:
+                    # If resolution fails, use original URL (might work if pooler is used)
+                    import logging
+                    logging.getLogger(__name__).warning(f"Could not resolve {hostname} to IPv4: {e}. Using original URL.")
+    except Exception as e:
+        # If URL parsing fails, log and continue with original URL
+        import logging
+        logging.getLogger(__name__).error(f"Error parsing DATABASE_URL: {e}. Using as-is.")
     
     engine = create_engine(
         DATABASE_URL,
