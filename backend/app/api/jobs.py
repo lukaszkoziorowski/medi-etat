@@ -12,6 +12,7 @@ from app.models import JobOffer, MedicalRole
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 
+@router.get("")
 @router.get("/")
 async def list_jobs(
     role: Optional[MedicalRole] = None,
