@@ -36,6 +36,34 @@ else:
     try:
         parsed = urlparse(DATABASE_URL)
         hostname = parsed.hostname
+        port = parsed.port
+        
+        # Fix port for Supabase pooler connections
+        # Pooler uses port 6543, not 5432
+        if hostname and '.pooler.supabase.com' in hostname:
+            if port != 6543:
+                # Update port to 6543 for pooler
+                netloc_parts = parsed.netloc.split(':')
+                if len(netloc_parts) == 2:
+                    # Replace port in netloc
+                    netloc = f"{netloc_parts[0]}:6543"
+                else:
+                    # Add port if not present
+                    netloc = f"{parsed.netloc}:6543"
+                
+                DATABASE_URL = urlunparse((
+                    parsed.scheme,
+                    netloc,
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment
+                ))
+                # Re-parse after fixing port
+                parsed = urlparse(DATABASE_URL)
+                hostname = parsed.hostname
+                import logging
+                logging.getLogger(__name__).info(f"Updated pooler port to 6543")
         
         # Only try IPv4 resolution if:
         # 1. We have a hostname
