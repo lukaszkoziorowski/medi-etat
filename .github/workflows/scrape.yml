@@ -1,0 +1,52 @@
+name: Daily Job Scrape
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (3 AM Polish time, 4 AM during DST)
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Prevent hanging jobs
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+      
+      - name: Run scrapers via Railway API
+        env:
+          RAILWAY_API_URL: ${{ secrets.RAILWAY_API_URL }}
+        run: |
+          echo "Triggering refresh on Railway..."
+          response=$(curl -s -w "\n%{http_code}" -X POST "$RAILWAY_API_URL/api/admin/refresh")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Refresh triggered successfully"
+            echo "$body" | jq '.' || echo "$body"
+          else
+            echo "❌ Refresh failed with HTTP $http_code"
+            echo "$body"
+            exit 1
+          fi
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Scraping job failed. Check Railway logs for details."

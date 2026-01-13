@@ -30,9 +30,8 @@ if is_sqlite:
     )
 else:
     # PostgreSQL configuration
-    # PythonAnywhere free tier doesn't support IPv6 connections
-    # If using Supabase pooler (recommended), it already uses IPv4
-    # Only try IPv4 resolution for direct Supabase connections
+    # Railway and most platforms support both IPv4 and IPv6
+    # PythonAnywhere free tier doesn't support IPv6, but Railway does
     try:
         parsed = urlparse(DATABASE_URL)
         hostname = parsed.hostname
