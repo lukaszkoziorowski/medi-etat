@@ -10,5 +10,5 @@ pytz==2023.3
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 supabase==2.3.4
-# postgrest is installed as a dependency of supabase, don't pin it separately
+# Note: postgrest is automatically installed by supabase, don't add it separately
 
