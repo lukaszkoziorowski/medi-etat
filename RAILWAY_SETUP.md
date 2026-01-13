@@ -27,11 +27,19 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - Click "Deploy Now"
 
 2. **Configure Service (CRITICAL - Do This First!):**
+   
+   **Option A: Using Railway Dashboard:**
    - After Railway creates the service, go to **Settings** tab
-   - Scroll down to **"Root Directory"** section
-   - **IMPORTANT**: Set Root Directory to: `backend`
-   - This tells Railway to build from the `backend/` folder, not the repo root
-   - Without this, Railway will see both `backend/` and `frontend/` and fail to detect the language
+   - Look for **"Source"** section (may be at the top or scroll down)
+   - Find **"Root Directory"** field in the Source section
+   - **IMPORTANT**: Set Root Directory to: `backend` (just the word "backend", no slashes)
+   - Click **"Save"**
+   
+   **Option B: If you can't find Root Directory setting:**
+   - The `railway.toml` file we created should help Railway detect the backend
+   - Go to **Settings** → **"Deploy"** section
+   - Set **"Start Command"** to: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Set **"Build Command"** to: `cd backend && pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium`
    - Click **"Save"**
    
 3. **Configure Build Settings (Important for Playwright):**
