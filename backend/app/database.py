@@ -38,25 +38,59 @@ else:
         hostname = parsed.hostname
         port = parsed.port
         
-        # PythonAnywhere free tier may block port 6543 (pooler)
-        # Try to resolve pooler to IPv4, or convert to direct connection
+        # PythonAnywhere free tier is IPv4-only
+        # Supabase direct connection is IPv6-only - MUST use pooler
+        # Session Pooler (port 5432) is IPv4-compatible
+        # Transaction Pooler (port 6543) may be blocked by PythonAnywhere
         if hostname and '.pooler.supabase.com' in hostname:
-            # PythonAnywhere might block pooler port 6543
-            # Convert pooler URL to direct connection URL (port 5432)
-            # Format: aws-1-eu-west-1.pooler.supabase.com -> db.xxx.supabase.co
-            # Extract project ref from username (postgres.xxx)
+            # If using Transaction Pooler (6543), convert to Session Pooler (5432)
+            # Session Pooler is IPv4-compatible and works on PythonAnywhere
+            if port == 6543:
+                # Convert Transaction Pooler to Session Pooler
+                netloc_parts = parsed.netloc.split(':')
+                if len(netloc_parts) >= 2:
+                    # Replace port 6543 with 5432
+                    netloc = ':'.join(netloc_parts[:-1]) + ':5432'
+                else:
+                    netloc = parsed.netloc + ':5432'
+                
+                DATABASE_URL = urlunparse((
+                    parsed.scheme,
+                    netloc,
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment
+                ))
+                # Re-parse after conversion
+                parsed = urlparse(DATABASE_URL)
+                hostname = parsed.hostname
+                port = parsed.port
+                import logging
+                logging.getLogger(__name__).info(f"Converted Transaction Pooler (6543) to Session Pooler (5432) for IPv4 compatibility")
+        
+        # If using direct connection (IPv6-only), we MUST convert to Session Pooler
+        if hostname and 'supabase.co' in hostname and '.pooler.' not in hostname:
+            # Direct connection is IPv6-only and won't work on PythonAnywhere
+            # Convert to Session Pooler (IPv4-compatible)
             username = parsed.username or ''
-            if 'postgres.' in username:
-                project_ref = username.split('.')[1] if '.' in username else None
+            if username and not username.startswith('postgres.'):
+                # Extract project ref from hostname: db.xxx.supabase.co -> xxx
+                project_ref = hostname.replace('db.', '').replace('.supabase.co', '')
                 if project_ref:
-                    # Convert to direct connection
-                    direct_hostname = f"db.{project_ref}.supabase.co"
-                    netloc = parsed.netloc.replace(hostname, direct_hostname)
-                    # Ensure port is 5432 for direct connection
-                    if ':' in netloc:
-                        netloc = netloc.split(':')[0] + ':5432'
+                    # Convert to Session Pooler format
+                    # Format: postgres.xxx:password@aws-1-eu-west-1.pooler.supabase.com:5432
+                    pooler_hostname = hostname.replace('db.', 'aws-1-eu-west-1.pooler.').replace('.supabase.co', '.supabase.com')
+                    pooler_username = f"postgres.{project_ref}"
+                    
+                    # Reconstruct netloc with pooler username and hostname
+                    password = parsed.password or ''
+                    if password:
+                        auth = f"{pooler_username}:{password}"
                     else:
-                        netloc = netloc + ':5432'
+                        auth = pooler_username
+                    
+                    netloc = f"{auth}@{pooler_hostname}:5432"
                     
                     DATABASE_URL = urlunparse((
                         parsed.scheme,
@@ -69,12 +103,9 @@ else:
                     # Re-parse after conversion
                     parsed = urlparse(DATABASE_URL)
                     hostname = parsed.hostname
+                    port = parsed.port
                     import logging
-                    logging.getLogger(__name__).info(f"Converted pooler to direct connection: {direct_hostname}")
-            else:
-                # If we can't extract project ref, try IPv4 resolution on pooler
-                import logging
-                logging.getLogger(__name__).warning("Could not extract project ref from pooler URL, trying IPv4 resolution")
+                    logging.getLogger(__name__).info(f"Converted direct connection to Session Pooler for IPv4 compatibility")
         
         # Try IPv4 resolution for all Supabase connections (direct or pooler)
         # PythonAnywhere free tier doesn't support IPv6 - MUST use IPv4
