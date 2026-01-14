@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd backend && bash build.sh"
+# Build command is handled by nixpacks.toml
 
 [deploy]
 startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
