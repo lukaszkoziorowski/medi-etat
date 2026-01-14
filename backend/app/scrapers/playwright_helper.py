@@ -74,6 +74,13 @@ class PlaywrightHelper:
             # Get page content
             content = page.content()
             
+            # Handle encoding issues
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8', errors='replace')
+                except:
+                    content = content.decode('latin-1', errors='replace')
+            
             return BeautifulSoup(content, 'lxml')
             
         except Exception as e:

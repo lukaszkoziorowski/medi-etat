@@ -79,7 +79,21 @@ class BaseScraper(ABC):
                     continue
                 
                 response.raise_for_status()
-                return BeautifulSoup(response.content, 'lxml')
+                
+                # Try to detect encoding, fallback to utf-8 with error handling
+                content = response.content
+                encoding = response.encoding or 'utf-8'
+                
+                # Try to decode with detected encoding, fallback to utf-8 with errors='replace'
+                try:
+                    text = content.decode(encoding)
+                except (UnicodeDecodeError, LookupError):
+                    try:
+                        text = content.decode('utf-8', errors='replace')
+                    except:
+                        text = content.decode('latin-1', errors='replace')
+                
+                return BeautifulSoup(text, 'lxml')
                 
         except Exception as e:
             print(f"Error fetching {url}: {e}")
