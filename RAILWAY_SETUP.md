@@ -37,22 +37,27 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    
    **Option B: If you can't find Root Directory setting:**
    - The `railway.toml` file we created should help Railway detect the backend
-   - Go to **Settings** → **"Deploy"** section
-   - Set **"Start Command"** to: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Set **"Build Command"** to: `cd backend && bash build.sh`
-     - This uses `requirements-railway.txt` (without Playwright) to speed up builds
-     - Playwright is installed separately in GitHub Actions when scraping runs
+   - **Important**: `railway.toml` already defines Build and Start commands, so:
+     - Go to **Settings** → **"Deploy"** section
+     - **Leave Build Command EMPTY** (or remove if set) - `railway.toml` will provide it
+     - **Leave Start Command EMPTY** (or remove if set) - `railway.toml` will provide it
+     - Dashboard settings override `railway.toml`, so empty = use config file
    - Click **"Save"**
    
 3. **Build Configuration (Optimized):**
-   - Railway will use `backend/build.sh` which:
-     - Installs dependencies from `requirements-railway.txt` (excludes Playwright)
+   - Railway will automatically use commands from `railway.toml`:
+     - **Build Command**: `cd backend && bash build.sh`
+     - **Start Command**: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - The `build.sh` script:
+     - Installs dependencies from `requirements-railway.txt` (excludes Playwright and unused `supabase` package)
      - Uses `--no-cache-dir` for faster pip installs
-     - Uses `--use-deprecated=legacy-resolver` to avoid extensive backtracking with transitive dependencies (e.g., `realtime`, `postgrest` from `supabase`)
+     - Uses `--use-deprecated=legacy-resolver` to avoid extensive backtracking
+     - Uses `--prefer-binary` to use pre-built wheels (faster than building from source)
      - Skips Playwright installation (done in GitHub Actions)
+   - **Important**: If you have Build/Start commands set in Railway Dashboard, **remove them** (leave empty) so `railway.toml` takes precedence
+   - **Note**: The `supabase` Python package was removed - it's not used in code (only SQLAlchemy with PostgreSQL connection string). This eliminates transitive dependency issues (`realtime`, `postgrest`, etc.)
    - **Note**: The `six` package is pinned to `1.16.0` to resolve dependency conflicts
-   - **Note**: Legacy resolver is used to prevent pip from backtracking through multiple versions of transitive dependencies
-   - Build should complete in 2-3 minutes (vs 8-10 minutes with Playwright, or timing out due to backtracking)
+   - Build should complete in 1-2 minutes (much faster without supabase dependencies)
 
 4. **Add Environment Variables:**
    - Go to your service → "Variables" tab
