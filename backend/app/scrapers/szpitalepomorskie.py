@@ -28,7 +28,12 @@ class SzpitalePomorskieScraper(BaseScraper):
             List of job offer dictionaries
         """
         jobs = []
-        soup = self.fetch_page(self.base_url)
+        # Try with Playwright first (handles JavaScript and anti-bot measures better)
+        soup = self.fetch_page(self.base_url, use_playwright=True)
+        
+        # Fallback to regular requests if Playwright fails
+        if not soup:
+            soup = self.fetch_page(self.base_url, use_playwright=False)
         
         if not soup:
             return jobs
