@@ -36,21 +36,15 @@ This guide walks you through deploying the Medietat backend to Koyeb.
 
 **Build Command:**
 ```bash
-export PATH="/app/.heroku/python/bin:$PATH" && python -m playwright install chromium --with-deps
-```
-
-**Alternative** (if above doesn't work):
-```bash
-find /app -name python -type f -path "*/heroku/python/bin/python" 2>/dev/null | head -1 | xargs -I {} {} -m playwright install chromium --with-deps
+(leave empty - not needed)
 ```
 
 **Important Notes**:
-- Koyeb buildpack installs Python 3.9, but the exact path may vary
-- **Critical**: Custom build commands run in a context where PATH isn't set correctly
-- The system Python (`/usr/bin/python`) is Python 3.10 and doesn't have installed packages
-- **Solution**: Try setting PATH to include buildpack's Python directory, or find Python dynamically
-- The buildpack typically installs to `/app/.heroku/python/bin/` (not `/home/koyeb/`)
-- Use `python -m playwright` (not just `playwright`) because Playwright is installed as a Python package
+- **No custom build command needed!** 
+- Playwright browsers are installed automatically via `.profile.d/install-playwright.sh`
+- This script runs when the service starts (after buildpack sets up Python environment)
+- The script checks if browsers are already installed to avoid reinstalling
+- Much simpler and more reliable than custom build commands
 - The `.python-version` file specifies Python 3.9
 - The `runtime.txt` file also specifies `python-3.9`
 
@@ -228,11 +222,9 @@ Keep the existing GitHub Actions workflow as backup:
 **Problem**: Playwright installation takes too long
 
 **Solutions**:
-1. Optimize build command:
-   ```bash
-   $HOME/.heroku/python/bin/python -m playwright install chromium --with-deps
-   ```
-   (Dependencies are already installed by buildpack from requirements.txt)
+1. Build command is already optimized (empty - uses .profile.d script)
+   - Playwright browsers install automatically on first service start
+   - No complex PATH manipulation needed
 2. Use lazy Playwright installation (install browsers on first use)
 3. Consider Docker image with pre-installed Playwright
 
