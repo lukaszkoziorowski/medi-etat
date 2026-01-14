@@ -48,9 +48,11 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - Railway will use `backend/build.sh` which:
      - Installs dependencies from `requirements-railway.txt` (excludes Playwright)
      - Uses `--no-cache-dir` for faster pip installs
+     - Uses `--use-deprecated=legacy-resolver` to avoid extensive backtracking with transitive dependencies (e.g., `realtime`, `postgrest` from `supabase`)
      - Skips Playwright installation (done in GitHub Actions)
    - **Note**: The `six` package is pinned to `1.16.0` to resolve dependency conflicts
-   - Build should complete in 2-3 minutes (vs 8-10 minutes with Playwright)
+   - **Note**: Legacy resolver is used to prevent pip from backtracking through multiple versions of transitive dependencies
+   - Build should complete in 2-3 minutes (vs 8-10 minutes with Playwright, or timing out due to backtracking)
 
 4. **Add Environment Variables:**
    - Go to your service → "Variables" tab

@@ -2,6 +2,7 @@
 set -e
 
 echo "Installing Python dependencies (without Playwright)..."
-pip install --no-cache-dir -r requirements-railway.txt
+# Use legacy resolver to avoid extensive backtracking with transitive dependencies
+pip install --no-cache-dir --use-deprecated=legacy-resolver -r requirements-railway.txt
 
 echo "Build complete! (Playwright will be installed separately in GitHub Actions)"
