@@ -137,7 +137,7 @@ export default function JobDetailClient({ job }: JobDetailClientProps) {
   }, [enrichedDescription]);
 
   return (
-    <div>
+    <div className="pb-24 lg:pb-0">
       {/* Job Title - Above both columns */}
       <h1 className="text-3xl lg:text-4xl font-bold text-[var(--color-text-primary)] mb-6 leading-tight">
         {job.title}
@@ -207,8 +207,8 @@ export default function JobDetailClient({ job }: JobDetailClientProps) {
 
         {/* Right Column - Actions and Similar Jobs */}
         <aside className="lg:sticky lg:top-8 lg:h-fit space-y-6">
-        {/* Primary Action Button */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6">
+        {/* Primary Action Button - Hidden on mobile (shown as sticky button) */}
+        <div className="hidden lg:block bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6">
           <a
             href={job.source_url}
             target="_blank"
@@ -250,6 +250,37 @@ export default function JobDetailClient({ job }: JobDetailClientProps) {
         )}
         </aside>
       </div>
+
+      {/* Mobile Sticky Button - "Przejdź do oferty pracy" */}
+      {job.source_url && (
+        <>
+          {/* Gradient overlay */}
+          <div 
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-30 pointer-events-none"
+            style={{
+              height: '120px',
+              background: 'linear-gradient(358deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%)',
+            }}
+          />
+          
+          {/* Button container */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4">
+            <a
+              href={job.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full"
+            >
+              <Button variant="primary" size="lg" className="w-full shadow-lg">
+                Przejdź do oferty pracy
+              </Button>
+            </a>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-2 text-center">
+              Link otworzy się w nowej karcie
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }
