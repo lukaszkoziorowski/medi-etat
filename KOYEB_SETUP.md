@@ -36,14 +36,20 @@ This guide walks you through deploying the Medietat backend to Koyeb.
 
 **Build Command:**
 ```bash
-$HOME/.heroku/python/bin/python -m playwright install chromium --with-deps
+source $HOME/.profile.d/python.sh 2>/dev/null || true && python -m playwright install chromium --with-deps
+```
+
+**Alternative** (if above doesn't work, use hardcoded path):
+```bash
+/home/koyeb/.heroku/python/bin/python -m playwright install chromium --with-deps
 ```
 
 **Important Notes**:
-- Koyeb buildpack installs Python 3.9 to `$HOME/.heroku/python`
+- Koyeb buildpack installs Python 3.9 and creates profile scripts in `$HOME/.profile.d/`
 - **Critical**: Custom build commands run in a context where PATH isn't set correctly
 - The system Python (`/usr/bin/python`) is Python 3.10 and doesn't have installed packages
-- **Solution**: Use full path `$HOME/.heroku/python/bin/python` to use the buildpack's Python
+- **Solution**: Source the buildpack's profile script to set up PATH, then use `python`
+- If sourcing doesn't work, use the hardcoded path `/home/koyeb/.heroku/python/bin/python`
 - Use `python -m playwright` (not just `playwright`) because Playwright is installed as a Python package
 - The `.python-version` file specifies Python 3.9
 - The `runtime.txt` file also specifies `python-3.9`
