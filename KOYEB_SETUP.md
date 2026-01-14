@@ -36,13 +36,19 @@ This guide walks you through deploying the Medietat backend to Koyeb.
 
 **Build Command:**
 ```bash
-cd backend && pip install --no-cache-dir -r requirements-koyeb.txt && playwright install chromium --with-deps
+playwright install chromium --with-deps
 ```
+
+**Note**: Koyeb buildpack auto-detects Python and installs from `requirements.txt`. 
+The build command only needs to install Playwright browsers.
 
 **Run Command:**
 ```bash
-cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
+
+**Note**: Since Root Directory is set to `backend`, Koyeb moves backend contents to workspace root.
+No need for `cd backend` in commands.
 
 **Note**: Koyeb may auto-detect Python. If it does, verify these commands are correct.
 
@@ -57,7 +63,7 @@ cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 Go to **"Environment Variables"** section and add:
 
 ```
-DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.bcwbndguvzwegaaqvlzq:Qazplmwsxokn00@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
 FRONTEND_URL=https://medi-etat.vercel.app
 PORT=8000
 PYTHONUNBUFFERED=1
@@ -75,8 +81,10 @@ PYTHONUNBUFFERED=1
 2. Click **"Add Cron Job"**
 3. Configure:
    - **Schedule**: `0 1 * * *` (1 AM UTC = 2 AM Polish time, 3 AM during DST)
-   - **Command**: `cd backend && python -m app.services.refresh_cli`
+   - **Command**: `python -m app.services.refresh_cli`
    - **Timezone**: UTC (default)
+   
+   **Note**: No need for `cd backend` - Koyeb already sets working directory to backend root.
 
 **Alternative**: If Koyeb doesn't support cron in dashboard, you may need to:
 - Use Koyeb CLI to add cron
@@ -142,7 +150,7 @@ Should trigger a refresh and return results.
 2. Find **"Cron Jobs"** section
 3. Add cron job:
    - **Schedule**: `0 1 * * *`
-   - **Command**: `cd backend && python -m app.services.refresh_cli`
+   - **Command**: `python -m app.services.refresh_cli`
    - **Working Directory**: `/app/backend` (verify in Koyeb docs)
 
 ### Option B: External Cron Service (If Koyeb Doesn't Support Cron)
