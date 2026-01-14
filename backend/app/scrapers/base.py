@@ -63,9 +63,24 @@ class BaseScraper(ABC):
             return PlaywrightHelper.fetch_page(url, wait_selector=wait_selector)
         
         try:
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
-            return BeautifulSoup(response.content, 'lxml')
+            # Add retry logic for 503 errors
+            import time
+            max_retries = 3
+            retry_delay = 2  # seconds
+            
+            for attempt in range(max_retries):
+                response = self.session.get(url, timeout=15)
+                
+                # If 503, wait and retry
+                if response.status_code == 503 and attempt < max_retries - 1:
+                    print(f"503 error for {url}, retrying in {retry_delay}s (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                    continue
+                
+                response.raise_for_status()
+                return BeautifulSoup(response.content, 'lxml')
+                
         except Exception as e:
             print(f"Error fetching {url}: {e}")
             return None
