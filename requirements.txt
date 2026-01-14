@@ -1,0 +1,3 @@
+# This file is only for Nixpacks to detect Python
+# Actual dependencies are installed via backend/build.sh using requirements-railway.txt
+# DO NOT add packages here - they won't be installed

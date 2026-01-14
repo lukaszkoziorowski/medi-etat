@@ -1,7 +1,14 @@
+# Nixpacks configuration for Railway
+# This tells Nixpacks to use Python and our custom build script
+
+[providers]
+python = "3.9"
+
 [phases.setup]
 nixPkgs = ["python39"]
 
-# Disable Nixpacks Python auto-detection - we handle installation ourselves
+# We handle package installation ourselves via build.sh
+# This prevents Nixpacks from auto-installing from requirements.txt
 [phases.install]
 cmds = [
     "echo '=========================================='",
