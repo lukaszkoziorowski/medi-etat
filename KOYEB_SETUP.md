@@ -36,15 +36,17 @@ This guide walks you through deploying the Medietat backend to Koyeb.
 
 **Build Command:**
 ```bash
-python -m playwright install chromium --with-deps
+$HOME/.heroku/python/bin/python -m playwright install chromium --with-deps
 ```
 
 **Important Notes**:
-- Koyeb buildpack auto-detects Python and installs from `requirements.txt`
+- Koyeb buildpack installs Python 3.9 to `$HOME/.heroku/python`
+- **Critical**: Custom build commands run in a context where PATH isn't set correctly
+- The system Python (`/usr/bin/python`) is Python 3.10 and doesn't have installed packages
+- **Solution**: Use full path `$HOME/.heroku/python/bin/python` to use the buildpack's Python
 - Use `python -m playwright` (not just `playwright`) because Playwright is installed as a Python package
-- The `.python-version` file in `backend/` directory specifies Python 3.9
+- The `.python-version` file specifies Python 3.9
 - The `runtime.txt` file also specifies `python-3.9`
-- **If buildpack uses Python 3.13 instead of 3.9**: This is a known issue - the buildpack may not detect `.python-version` correctly. The code should still work, but you can verify Python version in build logs.
 
 **Run Command:**
 ```bash
@@ -222,9 +224,9 @@ Keep the existing GitHub Actions workflow as backup:
 **Solutions**:
 1. Optimize build command:
    ```bash
-   pip install --no-cache-dir -r requirements-koyeb.txt && \
-   playwright install chromium --with-deps
+   $HOME/.heroku/python/bin/python -m playwright install chromium --with-deps
    ```
+   (Dependencies are already installed by buildpack from requirements.txt)
 2. Use lazy Playwright installation (install browsers on first use)
 3. Consider Docker image with pre-installed Playwright
 
