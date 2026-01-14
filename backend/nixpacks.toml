@@ -1,0 +1,24 @@
+# Nixpacks configuration for Railway
+# This tells Nixpacks to use Python and our custom build script
+
+[providers]
+python = "3.9"
+
+[phases.setup]
+nixPkgs = ["python39"]
+
+# We handle package installation ourselves via build.sh
+# This prevents Nixpacks from auto-installing from requirements.txt
+[phases.install]
+cmds = [
+    "echo '=========================================='",
+    "echo 'RAILWAY BUILD SCRIPT - Starting...'",
+    "echo '=========================================='",
+    "bash build.sh"
+]
+
+[phases.build]
+cmds = ["echo 'Build phase complete'"]
+
+[start]
+cmd = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
