@@ -1,11 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Installing Python dependencies..."
-pip install -r requirements.txt
+echo "Installing Python dependencies (without Playwright)..."
+pip install --no-cache-dir -r requirements-railway.txt
 
-echo "Installing Playwright browser..."
-playwright install chromium
-playwright install-deps chromium
-
-echo "Build complete!"
+echo "Build complete! (Playwright will be installed separately in GitHub Actions)"

@@ -10,5 +10,6 @@ pytz==2023.3
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 supabase==2.3.4
+six==1.16.0  # Pin six to resolve dependency conflicts
 # Note: postgrest is automatically installed by supabase, don't add it separately
 

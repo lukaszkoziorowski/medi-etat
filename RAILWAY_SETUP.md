@@ -39,21 +39,18 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
    - The `railway.toml` file we created should help Railway detect the backend
    - Go to **Settings** → **"Deploy"** section
    - Set **"Start Command"** to: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Set **"Build Command"** to: `cd backend && pip install -r requirements.txt`
-   - **Note**: Playwright installation happens automatically, but if it times out, Railway will retry
-   - **Alternative**: Split into two commands:
-     - Build: `cd backend && pip install -r requirements.txt`
-     - Post-install (if available): `cd backend && playwright install chromium || true`
+   - Set **"Build Command"** to: `cd backend && bash build.sh`
+     - This uses `requirements-railway.txt` (without Playwright) to speed up builds
+     - Playwright is installed separately in GitHub Actions when scraping runs
    - Click **"Save"**
    
-3. **Configure Build Settings (Important for Playwright):**
-   - Go to your service → "Settings" tab
-   - Scroll to "Build Command"
-   - Add this build command:
-     ```bash
-     pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium
-     ```
-   - Or leave it empty and Railway will auto-detect (but Playwright might need manual install)
+3. **Build Configuration (Optimized):**
+   - Railway will use `backend/build.sh` which:
+     - Installs dependencies from `requirements-railway.txt` (excludes Playwright)
+     - Uses `--no-cache-dir` for faster pip installs
+     - Skips Playwright installation (done in GitHub Actions)
+   - **Note**: The `six` package is pinned to `1.16.0` to resolve dependency conflicts
+   - Build should complete in 2-3 minutes (vs 8-10 minutes with Playwright)
 
 4. **Add Environment Variables:**
    - Go to your service → "Variables" tab
