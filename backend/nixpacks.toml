@@ -1,8 +1,15 @@
 [phases.setup]
 nixPkgs = ["python39"]
 
+# Disable Nixpacks Python auto-detection - we handle installation ourselves
 [phases.install]
-cmds = ["cd backend && bash build.sh"]
+cmds = [
+    "echo '=========================================='",
+    "echo 'RAILWAY BUILD SCRIPT - Starting...'",
+    "echo '=========================================='",
+    "cd backend",
+    "bash build.sh"
+]
 
 [phases.build]
 cmds = ["echo 'Build phase complete'"]
