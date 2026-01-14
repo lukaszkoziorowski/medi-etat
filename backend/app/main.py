@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.database import init_db
 from app.api import jobs, admin
-from app.services.scheduler import start_scheduler, stop_scheduler
+# Note: APScheduler removed - using Koyeb cron jobs instead
 
 # Configure logging
 logging.basicConfig(
@@ -29,31 +29,21 @@ async def lifespan(app: FastAPI):
     
     Handles:
     - Database initialization
-    - Automatic refresh scheduler startup
     - Cleanup on shutdown
+    
+    Note: Scheduled refreshes are handled by Koyeb cron jobs,
+    not by an in-process scheduler.
     """
     # Startup
     logger.info("Starting Medietat API...")
     init_db()
     logger.info("Database initialized")
-    
-    # Start automatic refresh scheduler
-    try:
-        start_scheduler()
-        logger.info("Automatic refresh scheduler started")
-    except Exception as e:
-        logger.error(f"Failed to start scheduler: {str(e)}", exc_info=True)
-        # Continue even if scheduler fails - manual refresh still works
+    logger.info("Scheduled refreshes are handled by Koyeb cron jobs")
     
     yield
     
     # Shutdown
     logger.info("Shutting down Medietat API...")
-    try:
-        stop_scheduler()
-        logger.info("Scheduler stopped")
-    except Exception as e:
-        logger.error(f"Error stopping scheduler: {str(e)}", exc_info=True)
     logger.info("Shutdown complete")
 
 

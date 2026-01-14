@@ -3,7 +3,7 @@ Admin API endpoints (internal use).
 """
 from fastapi import APIRouter, HTTPException
 from app.services.refresh import refresh_all_sources
-from app.services.scheduler import get_scheduler, is_scheduler_running
+# Note: APScheduler removed - using Koyeb cron jobs instead
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -32,27 +32,22 @@ async def refresh_jobs():
 @router.get("/scheduler/status")
 async def get_scheduler_status():
     """
-    Get the status of the automatic refresh scheduler.
+    Get the status of scheduled refreshes.
+    
+    Note: Scheduled refreshes are handled by Koyeb cron jobs,
+    not by an in-process scheduler. This endpoint provides
+    information about the cron schedule.
     
     Returns:
-        Dictionary with scheduler status and next run time
+        Dictionary with cron schedule information
     """
-    scheduler = get_scheduler()
-    
-    if not scheduler or not is_scheduler_running():
-        return {
-            "running": False,
-            "next_run": None,
-            "message": "Scheduler is not running"
-        }
-    
-    job = scheduler.get_job('daily_refresh')
-    next_run = job.next_run_time if job else None
-    
     return {
-        "running": True,
-        "next_run": next_run.isoformat() if next_run else None,
-        "timezone": "Europe/Warsaw",
-        "schedule": "Daily at 2:00 AM (Polish time)"
+        "scheduler_type": "koyeb_cron",
+        "running": True,  # Cron is always "running" (managed by Koyeb)
+        "next_run": None,  # Cannot determine next run time from API
+        "timezone": "UTC",
+        "schedule": "Daily at 1:00 AM UTC (2:00 AM Polish time, 3:00 AM during DST)",
+        "cron_expression": "0 1 * * *",
+        "message": "Scheduled refreshes are handled by Koyeb cron jobs. Use /api/admin/refresh for manual refresh."
     }
 
