@@ -56,8 +56,14 @@ This guide will help you migrate from PythonAnywhere to Railway + GitHub Actions
      - Skips Playwright installation (done in GitHub Actions)
    - **Important**: If you have Build/Start commands set in Railway Dashboard, **remove them** (leave empty) so `railway.toml` takes precedence
    - **Note**: The `supabase` Python package was removed - it's not used in code (only SQLAlchemy with PostgreSQL connection string). This eliminates transitive dependency issues (`realtime`, `postgrest`, etc.)
+   - **Note**: Common transitive dependencies are pre-pinned (starlette, pydantic, typing-extensions, etc.) to reduce pip backtracking
    - **Note**: The `six` package is pinned to `1.16.0` to resolve dependency conflicts
    - Build should complete in 1-2 minutes (much faster without supabase dependencies)
+   
+   **If builds still timeout due to backtracking:**
+   - See `backend/generate-locked-requirements.md` for instructions to generate a fully locked requirements file
+   - Run `bash backend/compile-requirements.sh` locally to generate `requirements-railway.txt` with ALL dependencies pinned
+   - Commit the locked file - Railway will then install exact versions (no resolution needed!)
 
 4. **Add Environment Variables:**
    - Go to your service → "Variables" tab
