@@ -1,3 +1,4 @@
+# Core dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
@@ -9,5 +10,20 @@ apscheduler==3.10.4
 pytz==2023.3
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
-six==1.16.0  # Pin six to resolve dependency conflicts
+six==1.16.0
+
+# Common transitive dependencies - pinned to reduce backtracking
+starlette==0.27.0  # FastAPI dependency
+pydantic==2.5.0  # FastAPI dependency
+pydantic-core==2.14.5  # Pydantic dependency
+typing-extensions==4.8.0  # Common dependency
+greenlet==3.0.1  # SQLAlchemy dependency
+annotated-types==0.6.0  # Pydantic dependency
+anyio==4.2.0  # Starlette/Uvicorn dependency
+sniffio==1.3.0  # Anyio dependency
+idna==3.6  # Requests/Anyio dependency
+certifi==2023.11.17  # Requests dependency
+charset-normalizer==3.3.2  # Requests dependency
+urllib3==2.1.0  # Requests dependency
+soupsieve==2.5  # BeautifulSoup4 dependency
 # Note: supabase package removed - not used in code (only SQLAlchemy with PostgreSQL connection string)
