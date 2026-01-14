@@ -36,11 +36,14 @@ This guide walks you through deploying the Medietat backend to Koyeb.
 
 **Build Command:**
 ```bash
-playwright install chromium --with-deps
+python -m playwright install chromium --with-deps
 ```
 
-**Note**: Koyeb buildpack auto-detects Python and installs from `requirements.txt`. 
-The build command only needs to install Playwright browsers.
+**Important Notes**:
+- Koyeb buildpack auto-detects Python and installs from `requirements.txt`
+- Use `python -m playwright` (not just `playwright`) because Playwright is installed as a Python package
+- The `.python-version` file in `backend/` directory specifies Python 3.9
+- If buildpack doesn't detect `.python-version`, it may use Python 3.13 (default) - verify Python version in logs
 
 **Run Command:**
 ```bash
