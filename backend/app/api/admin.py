@@ -1,32 +1,54 @@
 """
 Admin API endpoints (internal use).
 """
-from fastapi import APIRouter, HTTPException
+import asyncio
+import logging
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.services.refresh import refresh_all_sources
 # Note: APScheduler removed - using Koyeb cron jobs instead
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+logger = logging.getLogger(__name__)
+
+
+def run_refresh_background():
+    """Run refresh in background thread."""
+    try:
+        logger.info("Starting background refresh...")
+        result = refresh_all_sources()
+        logger.info(
+            f"Background refresh completed: {result.status}, "
+            f"{result.sources_processed} sources, "
+            f"{result.new_offers} new, {result.updated_offers} updated"
+        )
+    except Exception as e:
+        logger.error(f"Background refresh failed: {str(e)}", exc_info=True)
 
 
 @router.post("/refresh")
-async def refresh_jobs():
+async def refresh_jobs(background_tasks: BackgroundTasks):
     """
     Trigger a manual refresh of all job offers.
     
     This endpoint:
+    - Returns immediately (for cron services with short timeouts)
+    - Runs scraping in background
     - Re-scrapes all configured sources
     - Updates existing offers
     - Adds new offers
     - Marks missing offers as inactive
     
     Returns:
-        Refresh result with statistics
+        Immediate response indicating refresh started
     """
-    try:
-        result = refresh_all_sources()
-        return result.to_dict()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Refresh failed: {str(e)}")
+    # Run refresh in background to avoid timeout issues
+    background_tasks.add_task(run_refresh_background)
+    
+    return {
+        "status": "started",
+        "message": "Refresh job started in background. Check logs for progress.",
+        "note": "This endpoint returns immediately to avoid timeout issues with cron services."
+    }
 
 
 @router.get("/scheduler/status")
